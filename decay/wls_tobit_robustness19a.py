@@ -28,6 +28,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import yaml
+import matplotlib as mpl
 
 # --- make the repo root importable when running this file by path -------------
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
