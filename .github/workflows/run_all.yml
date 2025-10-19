@@ -88,6 +88,17 @@ jobs:
           chmod +x run_all.sh
           ./run_all.sh
 
+      
+      - name: Upload figures and CSV artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cri-artifacts
+          path: |
+            figures/output/*
+            decay/output/wls_tobit_*.csv
+          if-no-files-found: ignore
+     
       - name: Show regenerated decay_data.csv (debug)
         run: |
           echo "HEAD of freshly generated decay_data.csv:"
