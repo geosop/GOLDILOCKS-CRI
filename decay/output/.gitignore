@@ -1,3 +1,10 @@
 *
 !.gitkeep
 !.gitignore
+# ==== CRI pipeline outputs (ignore everything, but keep the folders) ====
+figures/output/*
+decay/output/*
+
+# keep the placeholder files so the dirs are tracked
+!figures/output/.gitkeep
+!decay/output/.gitkeep
