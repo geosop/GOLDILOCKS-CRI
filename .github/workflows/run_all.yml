@@ -1,0 +1,122 @@
+name: Run CRI pipeline (CI-safe)
+
+on:
+  workflow_dispatch:
+    inputs:
+      figs_only:
+        description: "Only build figures (skip long simulations)"
+        type: boolean
+        default: false
+      skip_tex:
+        description: "Skip LaTeX/TikZ build (faster; default)"
+        type: boolean
+        default: true
+      auto_install:
+        description: "pip install (requirements + core deps)"
+        type: boolean
+        default: true
+      skip_diag:
+        description: "Skip SI diagnostics (kernel + calibration)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python 3.11 with pip cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            utilities/requirements.txt
+            **/pyproject.toml
+
+      # Always ensure the minimal core deps (fixes "No module named 'yaml'")
+      - name: Ensure core deps (always)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install PyYAML numpy pandas scipy matplotlib statsmodels scikit-learn
+
+      
+      - name: Install Python deps (cleaned requirements)
+        if: ${{ inputs.auto_install }}
+        run: |
+          if [ -f utilities/requirements.txt ]; then
+            # Strip local file:// pins
+            sed -E 's|[[:space:]]*@ file://.*$||' utilities/requirements.txt > /tmp/reqs_clean.txt
+            # Drop OpenCV and a few heavy GUI/3D bits
+            grep -v -E '^opencv-python(-headless)?([=<>!].*)?$' /tmp/reqs_clean.txt \
+              | grep -v -E '^vtk([=<>!].*)?$' \
+              | grep -v -E '^PyQt5([=<>!].*)?$' \
+              | grep -v -E '^PySide6([=<>!].*)?$' \
+              | grep -v -E '^pyvista(qt)?([=<>!].*)?$' \
+              | grep -v -E '^openmeeg([=<>!].*)?$' \
+              > /tmp/reqs_clean2.txt
+            python -m pip install -r /tmp/reqs_clean2.txt || true
+          fi
+
+
+      - name: Install TeX + tools for TikZ
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            latexmk \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended texlive-pictures texlive-science \
+            cm-super \
+            poppler-utils
+
+
+      - name: Run pipeline
+        env:
+          CRI_AUTO_INSTALL: "true"  # force pip installs inside run_all.sh
+          CRI_SKIP_TEX: "0"         # 0 = DO NOT skip TikZ (enable TeX build)
+          CRI_SKIP_DIAG: "0"        # run diagnostics
+          CRI_FIGS_ONLY: "0"        # run full pipeline, not just figures
+        run: |
+          chmod +x run_all.sh
+          ./run_all.sh
+
+      - name: Show regenerated decay_data.csv (debug)
+        run: |
+          echo "HEAD of freshly generated decay_data.csv:"
+          sed -n '1,40p' decay/output/decay_data.csv || true
+
+      - name: Commit updated decay outputs to main
+        if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add decay/output/decay_data.csv \
+                  decay/output/decay_curve.csv \
+                  decay/output/fit_decay_results.csv \
+                  decay/output/decay_band.csv || true
+
+          git status --porcelain
+          if ! git diff --cached --quiet; then
+            git commit -m "CI: update decay outputs (auto) [skip ci]"
+            git push
+          else
+            echo "No changes to commit."
+          fi
+
+      - name: Upload CRI outputs (figures + CSV)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cri-outputs
+          path: |
+            figures/output/**
+            decay/output/*.csv
