@@ -124,9 +124,9 @@ run_py decay/wls_tobit_robustness.py \
   --ci "${ROBUST_CI}"
 
 # Show outputs in CI logs
-if [[ -f decay/output/wls_tobit_robustness.csv ]]; then
-  echo "---- decay/output/wls_tobit_robustness.csv ----"
-  sed -n '1,200p' decay/output/wls_tobit_robustness.csv || true
+if [[ -f decay/output/wls_tobit_check.csv ]]; then
+  echo "---- decay/output/wls_tobit_check.csv ----"
+  sed -n '1,200p' decay/output/wls_tobit_check.csv || true
 fi
 if [[ -f decay/output/wls_tobit_coverage.csv ]]; then
   echo "---- decay/output/wls_tobit_coverage.csv ----"
@@ -136,10 +136,21 @@ if [[ -f decay/output/wls_tobit_replicates.csv ]]; then
   echo "---- decay/output/wls_tobit_replicates.csv (head) ----"
   sed -n '1,40p' decay/output/wls_tobit_replicates.csv || true
 fi
+# Also copy CSVs into figures/output so existing artifact upload picks them up
+for f in decay/output/wls_tobit_check.csv decay/output/wls_tobit_coverage.csv decay/output/wls_tobit_replicates.csv; do
+  [[ -f "$f" ]] && cp "$f" figures/output/
+done
+
 if [[ -f figures/output/decay_wls_tobit_robustness.png ]]; then
   echo "✓ wrote figures/output/decay_wls_tobit_robustness.png"
 else
   echo "⚠️  expected figures/output/decay_wls_tobit_robustness.png not found." >&2
+fi
+
+if [[ -f figures/output/decay_wls_tobit_robustness.pdf ]]; then
+  echo "✓ wrote figures/output/decay_wls_tobit_robustness.pdf"
+else
+  echo "⚠️  expected figures/output/decay_wls_tobit_robustness.pdf not found." >&2
 fi
 
 echo
