@@ -201,7 +201,7 @@ def main():
     if not args.no_annot:
         # Move the κ̂0/γ_fwd/n annotation further to the RIGHT (still at top)
         ax1.text(
-            0.58, 0.95,  # <-- moved right from 0.02 → 0.58
+            0.25, 0.95,  # <-- moved right from 0.02 → 0.58
             rf"$\hat{{\kappa}}_0={k_hat:.2f}\ \mathrm{{s}}^{{-1}}$ "
             rf"(95% CI: {k_lo:.2f}–{k_hi:.2f})" "\n"
             rf"$\gamma_{{\mathrm{{fwd}}}}={gamma_fwd:.1f}$, $n={n_obs}$ pts",
