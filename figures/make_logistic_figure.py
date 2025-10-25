@@ -22,8 +22,8 @@ mpl.rcParams.update({
     "axes.linewidth": 0.6,
     "lines.linewidth": 1.0,
     "legend.fontsize": 4,
-    "xtick.labelsize": 7,
-    "ytick.labelsize": 7,
+    "xtick.labelsize": 6,
+    "ytick.labelsize": 6,
     "pdf.fonttype": 42,
     "ps.fonttype": 42,
 })
