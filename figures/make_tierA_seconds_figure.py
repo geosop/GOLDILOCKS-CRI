@@ -314,7 +314,17 @@ def main():
     ax_a.set_title(title, pad=8)
     ax_a.set_xlabel(r"$\tau_f$ (s)")
     ax_a.set_ylabel(r"$\ln A_{\mathrm{pre}}(\tau_f)$")
-    ax_a.legend(frameon=False)
+    #  ax_a.legend(frameon=False)
+    leg_a = ax_a.legend(
+        frameon=False,
+        fontsize=5,          # smaller legend text
+        ncol=2,              # if it wraps, use 2 columns → 2 rows
+        labelspacing=0.20,   # tighter vertical space between rows
+        handlelength=1.2,    # shorter line-length next to labels
+        handletextpad=0.4,   # tighter gap between handle and text
+        columnspacing=0.7,   # tighter gap between columns
+        borderpad=0.25       # tighter padding inside the legend box (if frameon=True)
+    )
     ax_a.grid(True, alpha=0.3)
     ax_a.margins(x=0.02, y=0.02)
     fig_a.tight_layout()
@@ -376,8 +386,19 @@ def main():
     # Keep legend order as low, mid, high
     handles, leg_labels = ax_b.get_legend_handles_labels()
     order = [leg_labels.index("low a"), leg_labels.index("mid a"), leg_labels.index("high a")]
-    ax_b.legend([handles[i] for i in order], [leg_labels[i] for i in order], frameon=False)
-
+    # ax_b.legend([handles[i] for i in order], [leg_labels[i] for i in order], frameon=False)
+    leg_b = ax_b.legend(
+        [handles[i] for i in order], [leg_labels[i] for i in order],
+        frameon=False,
+        fontsize=5,
+        ncol=2,              # if it wraps to 2 lines, keep rows compact
+        labelspacing=0.20,
+        handlelength=1.2,
+        handletextpad=0.4,
+        columnspacing=0.7,
+        borderpad=0.25
+    )
+    
     # --- τ95 markers: vertical blue guides + bottom-anchored labels with auto-offset
     vline_kw = dict(color="tab:blue", ls=":", lw=1.15, zorder=1)
     base_y   = ax_b.get_ylim()[0]
