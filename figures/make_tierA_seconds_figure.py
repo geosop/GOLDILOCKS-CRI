@@ -301,6 +301,7 @@ def main():
         # 4) OLS line between band and points
         ax_a.plot(tau_fit, y_line, color='tab:orange', lw=2.0, zorder=2.1, label='OLS fit')
 
+
         # Two-line title: headline + metrics
         title = (
             r"log-linear fit (OLS) with 95% HC3 CI" + "\n" +
@@ -309,15 +310,16 @@ def main():
         )
     else:
         # Two-line fallback when not enough τ are gate-on
-        title = "log-linear fit\n(insufficient gate-on $\\tau$)"
-
-    ax_a.set_title(title, pad=8)
+        title = r"log-linear fit" + "\n" + r"(insufficient gate-on $\tau$)"
+    t_a = ax_a.set_title(title, fontsize=5, pad=4)        # smaller font, less gap above axes
+    t_a.set_linespacing(0.9)                              # minimal spacing between the two lines
+    #ax_a.set_title(title, pad=8)
     ax_a.set_xlabel(r"$\tau_f$ (s)")
     ax_a.set_ylabel(r"$\ln A_{\mathrm{pre}}(\tau_f)$")
     #  ax_a.legend(frameon=False)
     leg_a = ax_a.legend(
         frameon=False,
-        fontsize=5,          # smaller legend text
+        fontsize=7,          # smaller legend text
         ncol=2,              # if it wraps, use 2 columns → 2 rows
         labelspacing=0.20,   # tighter vertical space between rows
         handlelength=1.2,    # shorter line-length next to labels
@@ -386,19 +388,7 @@ def main():
     # Keep legend order as low, mid, high
     handles, leg_labels = ax_b.get_legend_handles_labels()
     order = [leg_labels.index("low a"), leg_labels.index("mid a"), leg_labels.index("high a")]
-    # ax_b.legend([handles[i] for i in order], [leg_labels[i] for i in order], frameon=False)
-    leg_b = ax_b.legend(
-        [handles[i] for i in order], [leg_labels[i] for i in order],
-        frameon=False,
-        fontsize=5,
-        ncol=2,              # if it wraps to 2 lines, keep rows compact
-        labelspacing=0.20,
-        handlelength=1.2,
-        handletextpad=0.4,
-        columnspacing=0.7,
-        borderpad=0.25
-    )
-    
+    ax_b.legend([handles[i] for i in order], [leg_labels[i] for i in order], frameon=False)
     # --- τ95 markers: vertical blue guides + bottom-anchored labels with auto-offset
     vline_kw = dict(color="tab:blue", ls=":", lw=1.15, zorder=1)
     base_y   = ax_b.get_ylim()[0]
