@@ -100,7 +100,7 @@ def main():
     ax_ins.set_title(r'$\mathrm{d}G/\mathrm{d}q$', fontsize=8)
     ax_ins.set_xlabel(r"$q$", fontsize=7); ax_ins.set_ylabel("Rate", fontsize=7)
     ax_ins.set_xlim(0, 1); ax_ins.tick_params(labelsize=6)
-    ax_ins.legend(loc='upper right', frameon=False, fontsize=5)
+    ax_ins.legend(loc='upper right', frameon=False, fontsize=3)
 
     pdf = os.path.join(out_dir, 'Box2b_logistic_refined.pdf')
     png = os.path.join(out_dir, 'Box2b_logistic_refined.png')
