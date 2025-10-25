@@ -263,10 +263,12 @@ def main():
         ax2.text(
             0.02, 0.98, stats_txt, transform=ax2.transAxes,   # <-- top-left
             ha="left", va="top",
-            bbox=dict(boxstyle="round,pad=0.22", facecolor="white", alpha=0.90,
-                      edgecolor="0.8", linewidth=0.6),
+            bbox=dict(boxstyle="round,pad=0.22",
+                      facecolor="none",          # transparent fill
+                      edgecolor="black",         # thin black outline
+                      linewidth=0.5),            # adjust 0.4–0.7 to taste
             fontsize=6.2, zorder=6,
-            linespacing=0.95   # minimal gap between lines
+            linespacing=0.95                     # minimal gap between lines
         )
 
     # Export stats to CSV (optional)
