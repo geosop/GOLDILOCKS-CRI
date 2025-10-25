@@ -54,6 +54,7 @@ def main():
     col_blue1 = "#1f77b4"
     col_purp2 = "#7f3c8d"
     col_orng  = "#FF8C1A"
+    col_yell  = "#FFC107"   # bright yellow
     col_grey  = "0.45"
 
     fig, ax = plt.subplots(figsize=(88/25.4, (88/1.55)/25.4))
@@ -71,10 +72,13 @@ def main():
         ax.plot(df_band['q'], df_band['G_central_a2'], color=col_purp2, linewidth=1.2,
                 label=r"Fitted $G(q\mid a_2)$")
 
+    
+    a_unique = np.sort(df_bins['a'].unique())   # assumes two conditions
     for a_val, df_a in df_bins.groupby('a'):
-        ax.scatter(df_a['q_bin_center'], df_a['rate_mean'], s=18,
-                   facecolors=col_orng, edgecolors='black', linewidths=0.4,
-                   label=f"Bin means (a={a_val:.2f})")
+    face = col_orng if np.isclose(a_val, a_unique[0]) else col_yell
+    ax.scatter(df_a['q_bin_center'], df_a['rate_mean'], s=18,
+               facecolors=face, edgecolors='black', linewidths=0.4,
+               label=f"Bin means (a={a_val:.2f})")
 
     p0_a1 = df_fit['p0_hat_a1'].iloc[0]
     ax.axvline(p0_a1, color=col_grey, linestyle='--', linewidth=0.8,
