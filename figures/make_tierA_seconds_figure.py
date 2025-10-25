@@ -319,7 +319,7 @@ def main():
     #  ax_a.legend(frameon=False)
     leg_a = ax_a.legend(
         frameon=False,
-        fontsize=7,          # smaller legend text
+        fontsize=8,          # smaller legend text
         ncol=1,              # if it wraps, use 2 columns → 2 rows
         labelspacing=0.20,   # tighter vertical space between rows
         handlelength=1.2,    # shorter line-length next to labels
