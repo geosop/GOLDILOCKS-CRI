@@ -90,7 +90,7 @@ def main():
 
     # Inset: derivatives
     ax_ins = inset_axes(ax, width='70%', height='70%',
-                        loc='lower left', bbox_to_anchor=(0.64, 0.27, 0.36, 0.38),
+                        loc='lower left', bbox_to_anchor=(0.64, 0.27, 0.38, 0.38),
                         bbox_transform=ax.transAxes)
     ax_ins.plot(df_der['q'], df_der['dGdq_a1'], color=col_blue1, linewidth=0.9, label=r"$\mathrm{d}G/\mathrm{d}q$ (a$_1$)")
     ax_ins.axvline(p0_a1, color=col_grey, linestyle='--', linewidth=0.7)
