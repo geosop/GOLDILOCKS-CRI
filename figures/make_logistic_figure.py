@@ -97,8 +97,8 @@ def main():
     if 'dGdq_a2' in df_der.columns:
         ax_ins.plot(df_der['q'], df_der['dGdq_a2'], color=col_purp2, linewidth=0.9, label=r"$\mathrm{d}G/\mathrm{d}q$ (a$_2$)")
         ax_ins.axvline(p0_a2, color='0.30', linestyle='--', linewidth=0.7)
-    ax_ins.set_title(r'$\mathrm{d}G/\mathrm{d}q$', fontsize=6)
-    ax_ins.set_xlabel(r"$q$", fontsize=4); ax_ins.set_ylabel("Rate", fontsize=4)
+    ax_ins.set_title(r'$\mathrm{d}G/\mathrm{d}q$', fontsize=4)
+    ax_ins.set_xlabel(r"$q$", fontsize=3); ax_ins.set_ylabel("Rate", fontsize=3)
     ax_ins.set_xlim(0, 1); ax_ins.tick_params(labelsize=3)
     ax_ins.legend(loc='upper right', frameon=False, fontsize=2)
 
