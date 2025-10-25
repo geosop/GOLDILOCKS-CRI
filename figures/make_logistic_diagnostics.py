@@ -6,10 +6,10 @@ Panel (top): model-free kernel smoother (faint) overlaid on fitted logistic curv
 Panel (bottom): calibration curves (observed vs predicted) with Wilson intervals,
 plus Brier and ECE annotations per condition.
 
-Updates:
-- Use constrained_layout and reserve right margin so an outside legend never overlaps data.
-- Move Brier/ECE text to top-right with a light background for readability.
-- Place bottom-panel legend outside (right side) with styling and high z-order.
+Fixes:
+- Remove constrained_layout (conflicts with outside legend anchored to axes).
+- Reserve right margin with subplots_adjust so the outside legend is never clipped.
+- Place bottom legend outside on the right; move metrics text to top-right with a readable box.
 """
 import os, yaml
 import numpy as np
@@ -54,14 +54,14 @@ def main():
     col_teal2 = "#9ADBD2"; col_purp2 = "#7f3c8d"
     col_kern  = "#888888"  # faint gray for kernel
 
-    # Use constrained layout and reserve right margin for the outside legend in ax2
+    # Figure: NO constrained_layout; reserve right margin for outside legend
     fig, (ax1, ax2) = plt.subplots(
         2, 1,
         figsize=(88/25.4, 110/25.4),
         gridspec_kw={'hspace': 0.35},
-        constrained_layout=True,
     )
-    fig.subplots_adjust(right=0.86)  # leaves space at right so outside legend isn't clipped
+    # Leave ~14% of width for the legend area
+    fig.subplots_adjust(right=0.86)
 
     # --- Top: kernel smoother vs logistic fits ---
     ax1.fill_between(band['q'], band['G_low_a1'], band['G_high_a1'],
@@ -123,6 +123,7 @@ def main():
     def metric_val(name, a):
         row = metr[(metr['metric']==name) & (metr['a']==a)]
         return float(row['value'].iloc[0]) if not row.empty else np.nan
+
     if two:
         text = (f"a1: Brier={metric_val('Brier','a1'):.3f}, ECE={metric_val('ECE','a1'):.3f}    "
                 f"a2: Brier={metric_val('Brier','a2'):.3f}, ECE={metric_val('ECE','a2'):.3f}")
@@ -138,7 +139,7 @@ def main():
     ax2.set_xlim(0,1); ax2.set_ylim(0,1)
     ax2.set_xlabel("Predicted probability"); ax2.set_ylabel("Observed rate")
 
-    # Legend OUTSIDE on the right to avoid any overlap with data or an inset
+    # Legend OUTSIDE on the right; it sits in the reserved right margin
     leg2 = ax2.legend(
         loc='upper left', bbox_to_anchor=(1.02, 1.00), borderaxespad=0.0,
         frameon=True, fancybox=True, ncol=1, handlelength=1.4,
