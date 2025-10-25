@@ -22,7 +22,7 @@ mpl.rcParams.update({
     "font.size":   8,
     "axes.linewidth": 0.6,
     "lines.linewidth": 1.0,
-    "legend.fontsize": 6,
+    "legend.fontsize": 5,
     "xtick.labelsize": 7,
     "ytick.labelsize": 7,
     "pdf.fonttype": 42,
@@ -131,7 +131,7 @@ def main():
         text = f"a1: Brier={metric_val('Brier','a1'):.3f}, ECE={metric_val('ECE','a1'):.3f}"
 
     ax2.text(
-        0.98, 0.98, text, transform=ax2.transAxes, va='top', ha='right', fontsize=7,
+        0.98, 0.98, text, transform=ax2.transAxes, va='top', ha='right', fontsize=5,
         bbox=dict(boxstyle="round,pad=0.25", facecolor="white", alpha=0.85, edgecolor="none"),
         zorder=4
     )
