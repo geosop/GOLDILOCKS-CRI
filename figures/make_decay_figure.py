@@ -144,18 +144,18 @@ def parse_args():
     # Inset position (axes coords)
     parser.add_argument("--inset-x", type=float, default=float(os.getenv("CRI_INSET_X", 0.14)),
                         help="Inset lower-left x in axes coords [0..1].")
-    parser.add_argument("--inset-y", type=float, default=float(os.getenv("CRI_INSET_Y", 0.18)),
+    parser.add_argument("--inset-y", type=float, default=float(os.getenv("CRI_INSET_Y", 0.22)),
                         help="Inset lower-left y in axes coords [0..1].")
     # Inset size (fractions of axes; converted to percentages for inset_axes)
-    parser.add_argument("--inset-w", type=float, default=float(os.getenv("CRI_INSET_W", 0.19)),
+    parser.add_argument("--inset-w", type=float, default=float(os.getenv("CRI_INSET_W", 0.22)),
                         help="Inset width as fraction of main axes (e.g., 0.19 ≈ 19%).")
-    parser.add_argument("--inset-h", type=float, default=float(os.getenv("CRI_INSET_H", 0.17)),
+    parser.add_argument("--inset-h", type=float, default=float(os.getenv("CRI_INSET_H", 0.20)),
                         help="Inset height as fraction of main axes (e.g., 0.17 ≈ 17%).")
 
     # Annotation position controls
     parser.add_argument("--ann-x", type=float, default=float(os.getenv("CRI_ANN_X", 0.66)),
                         help="Slope/τ̂ annotation x in AXES coords [0..1]. Smaller moves left.")
-    parser.add_argument("--ann-yfrac", type=float, default=float(os.getenv("CRI_ANN_YFRAC", 0.10)),
+    parser.add_argument("--ann-yfrac", type=float, default=float(os.getenv("CRI_ANN_YFRAC", 0.40)),
                         help="Slope/τ̂ annotation y as FRACTION of y-range from bottom [0..1]. Larger moves up.")
 
     return parser.parse_args()
