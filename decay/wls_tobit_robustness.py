@@ -154,33 +154,31 @@ def _plot_tau_panel(out: dict, out_png: str, out_pdf: str):
         y, out["ols_ci_lo_ms"], out["ols_ci_hi_ms"],
         linewidth=4, color="C0", label="OLS 95% CI", zorder=1
     )
-
-    # Marker-only entries (no line in legend)
-    ax.plot([out["tau_ols_ms"]],   [y],
-            marker="o", ms=7, color="C0", linestyle="None",
+    
+    # marker-only entries (no connecting line in legend)
+    ax.plot([out["tau_ols_ms"]],   [y],          marker="o", ms=7, color="C0", linestyle="None",
             label=f"OLS {out['tau_ols_ms']:.1f} ms", zorder=3)
-
-    ax.plot([out["tau_wls_ms"]],   [y + 0.08],
-            marker="^", ms=7, color="C1", linestyle="None",
+    ax.plot([out["tau_wls_ms"]],   [y + 0.08],   marker="^", ms=7, color="C1", linestyle="None",
             label=f"WLS {out['tau_wls_ms']:.1f} ms", zorder=3)
-
-    ax.plot([out["tau_tobit_ms"]], [y - 0.08],
-            marker="s", ms=7, color="C2", linestyle="None",
+    ax.plot([out["tau_tobit_ms"]], [y - 0.08],   marker="s", ms=7, color="C2", linestyle="None",
             label=f"Tobit {out['tau_tobit_ms']:.1f} ms", zorder=3)
 
-    ax.set_xlabel("τ (ms)")
-    ax.set_yticks([])
-    ax.grid(True, axis="x", linestyle=":", alpha=0.6)
-
-    # Give a bit of headroom so the top legend won't overlap the markers
-    ax.set_ylim(-0.18, 0.18)
-
-    # Move legend OUTSIDE, centered above, so it never covers the markers
+    # --- single-line legend above the axes ---
+    handles, labels = ax.get_legend_handles_labels()
     leg = ax.legend(
-        loc="lower center", bbox_to_anchor=(0.5, 1.02),
-        ncol=3, fontsize=8, frameon=False, borderaxespad=0.0,
-        handletextpad=0.5, columnspacing=1.0, labelspacing=0.2
+        handles, labels,
+        loc="lower left",
+        bbox_to_anchor=(0.0, 1.02, 1.0, 0.0),  # span full axes width above
+        mode="expand",                         # distribute columns across width
+        ncol=4,                                # one column per entry -> one row
+        frameon=False,
+        fontsize=8,
+        handlelength=1.2, handletextpad=0.5,
+        columnspacing=0.9, labelspacing=0.2,
+        borderaxespad=0.0
     )
+
+
 
     plt.tight_layout()
     fig.savefig(out_png, dpi=200, bbox_inches="tight")
