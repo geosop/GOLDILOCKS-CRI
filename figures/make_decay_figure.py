@@ -155,7 +155,7 @@ def parse_args():
     # Annotation position controls
     parser.add_argument("--ann-x", type=float, default=float(os.getenv("CRI_ANN_X", 0.66)),
                         help="Slope/τ̂ annotation x in AXES coords [0..1]. Smaller moves left.")
-    parser.add_argument("--ann-yfrac", type=float, default=float(os.getenv("CRI_ANN_YFRAC", 0.70)),
+    parser.add_argument("--ann-yfrac", type=float, default=float(os.getenv("CRI_ANN_YFRAC", 0.55)),
                         help="Slope/τ̂ annotation y as FRACTION of y-range from bottom [0..1]. Larger moves up.")
 
     return parser.parse_args()
