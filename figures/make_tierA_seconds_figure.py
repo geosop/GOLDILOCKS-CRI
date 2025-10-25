@@ -311,7 +311,7 @@ def main():
     else:
         # Two-line fallback when not enough τ are gate-on
         title = r"log-linear fit" + "\n" + r"(insufficient gate-on $\tau$)"
-    t_a = ax_a.set_title(title, fontsize=5, pad=4)        # smaller font, less gap above axes
+    t_a = ax_a.set_title(title, fontsize=7, pad=4)        # smaller font, less gap above axes
     t_a.set_linespacing(0.9)                              # minimal spacing between the two lines
     #ax_a.set_title(title, pad=8)
     ax_a.set_xlabel(r"$\tau_f$ (s)")
@@ -320,7 +320,7 @@ def main():
     leg_a = ax_a.legend(
         frameon=False,
         fontsize=7,          # smaller legend text
-        ncol=2,              # if it wraps, use 2 columns → 2 rows
+        ncol=1,              # if it wraps, use 2 columns → 2 rows
         labelspacing=0.20,   # tighter vertical space between rows
         handlelength=1.2,    # shorter line-length next to labels
         handletextpad=0.4,   # tighter gap between handle and text
