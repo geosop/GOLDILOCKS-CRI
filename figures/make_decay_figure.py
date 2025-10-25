@@ -34,7 +34,7 @@ mpl.rcParams.update({
     "font.size":        8,
     "axes.linewidth":   0.6,
     "lines.linewidth":  0.9,
-    "legend.fontsize":  5.5,
+    "legend.fontsize":  5,
     "xtick.labelsize":  7,
     "ytick.labelsize":  7,
     "pdf.fonttype":     42,
@@ -142,9 +142,9 @@ def clamp(v, lo, hi):
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate CRI decay figure with adjustable inset and annotation positions.")
     # Inset position (axes coords)
-    parser.add_argument("--inset-x", type=float, default=float(os.getenv("CRI_INSET_X", 0.08)),
+    parser.add_argument("--inset-x", type=float, default=float(os.getenv("CRI_INSET_X", 0.10)),
                         help="Inset lower-left x in axes coords [0..1].")
-    parser.add_argument("--inset-y", type=float, default=float(os.getenv("CRI_INSET_Y", 0.10)),
+    parser.add_argument("--inset-y", type=float, default=float(os.getenv("CRI_INSET_Y", 0.14)),
                         help="Inset lower-left y in axes coords [0..1].")
     # Inset size (fractions of axes; converted to percentages for inset_axes)
     parser.add_argument("--inset-w", type=float, default=float(os.getenv("CRI_INSET_W", 0.19)),
@@ -153,9 +153,9 @@ def parse_args():
                         help="Inset height as fraction of main axes (e.g., 0.17 ≈ 17%).")
 
     # Annotation position controls
-    parser.add_argument("--ann-x", type=float, default=float(os.getenv("CRI_ANN_X", 0.60)),
+    parser.add_argument("--ann-x", type=float, default=float(os.getenv("CRI_ANN_X", 0.66)),
                         help="Slope/τ̂ annotation x in AXES coords [0..1]. Smaller moves left.")
-    parser.add_argument("--ann-yfrac", type=float, default=float(os.getenv("CRI_ANN_YFRAC", 0.15)),
+    parser.add_argument("--ann-yfrac", type=float, default=float(os.getenv("CRI_ANN_YFRAC", 0.22)),
                         help="Slope/τ̂ annotation y as FRACTION of y-range from bottom [0..1]. Larger moves up.")
 
     return parser.parse_args()
