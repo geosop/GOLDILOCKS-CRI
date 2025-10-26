@@ -203,7 +203,7 @@ def main():
         ax1.text(
             0.25, 0.95,  # <-- moved right from 0.02 → 0.58
             rf"$\hat{{\kappa}}_0={k_hat:.2f}\ \mathrm{{s}}^{{-1}}$ "
-            rf"(95% CI: {k_lo:.2f}–{k_hi:.2f})" "\n"
+            rf"(95% sim. bootstrap: {k_lo:.2f}–{k_hi:.2f})" "\n"
             rf"$\gamma_{{\mathrm{{fwd}}}}={gamma_fwd:.1f}$, $n={n_obs}$ pts",
             transform=ax1.transAxes, va="top", ha="left",
             bbox=dict(boxstyle="round,pad=0.25", facecolor="white", alpha=0.85, edgecolor="0.8", linewidth=0.6),
@@ -218,11 +218,11 @@ def main():
     Rm = np.asarray(R_mean)[order]
 
     ax2.fill_between(xr, Rl, Rh, color=TEAL_BAND, alpha=0.9, edgecolor="none",
-                     label="95% CI (bootstrap)")
+                     label="95% sim. bootstrap band")
     ax2.plot(xr, (theory_y[order] if np.ndim(theory_y)>0 else theory_y), ls="--", color="grey",
              label=theory_label)
     ax2.scatter(x_right, R_mean, s=28, color=TEAL_DOT, edgecolors="black", linewidths=0.4,
-                label=r"Bootstrapped $R$")
+                label=r"Sim. bootstrap $R$")
     ax2.vlines(x_right, R_low, R_high, colors=TEAL_DOT, alpha=0.35, linewidth=0.8)
 
     ax2.set_xlabel(x_label)
