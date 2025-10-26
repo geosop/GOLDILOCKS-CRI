@@ -74,11 +74,12 @@ def main():
 
     
     a_unique = np.sort(df_bins['a'].unique())   # assumes two conditions
+    
     for a_val, df_a in df_bins.groupby('a'):
-    face = col_orng if np.isclose(a_val, a_unique[0]) else col_yell
-    ax.scatter(df_a['q_bin_center'], df_a['rate_mean'], s=18,
-               facecolors=face, edgecolors='black', linewidths=0.4,
-               label=f"Bin means (a={a_val:.2f})")
+        face = col_orng if np.isclose(a_val, a_unique[0]) else col_yell
+        ax.scatter(df_a['q_bin_center'], df_a['rate_mean'], s=18,
+                   facecolors=face, edgecolors='black', linewidths=0.4,
+                   label=f"Bin means (a={a_val:.2f})")
 
     p0_a1 = df_fit['p0_hat_a1'].iloc[0]
     ax.axvline(p0_a1, color=col_grey, linestyle='--', linewidth=0.8,
