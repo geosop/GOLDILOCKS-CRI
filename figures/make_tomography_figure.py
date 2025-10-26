@@ -192,7 +192,13 @@ def main():
     ax1.set_xlabel(r"Time $t$ (ms)")
     ax1.set_ylabel(r"Population $P(t)$")
     ax1.set_title(r"$P(t)=\exp\!\left[-(\kappa_0/2)\,(\gamma_{\mathrm{fwd}}+\gamma_b)\,t\right]$")
-    leg1 = ax1.legend(loc="upper right", frameon=True, fancybox=True)
+    
+    leg1 = ax1.legend(
+        loc="upper right",
+        bbox_to_anchor=(0.98, 0.18),   # right edge, lower y → move downward
+        frameon=True, fancybox=True,
+        borderaxespad=0.0, handlelength=1.2, handletextpad=0.35
+    )
     leg1.get_frame().set_facecolor(LIGHT_GRAY)
     leg1.get_frame().set_edgecolor("0.80")
     leg1.get_frame().set_linewidth(0.6)
@@ -201,7 +207,7 @@ def main():
     if not args.no_annot:
         # Move the κ̂0/γ_fwd/n annotation further to the RIGHT (still at top)
         ax1.text(
-            0.25, 0.95,  # <-- moved right from 0.02 → 0.58
+            0.28, 0.95,  # <-- moved right from 0.02 → 0.58
             rf"$\hat{{\kappa}}_0={k_hat:.2f}\ \mathrm{{s}}^{{-1}}$ "
             rf"(95% sim. bootstrap: {k_lo:.2f}–{k_hi:.2f})" "\n"
             rf"$\gamma_{{\mathrm{{fwd}}}}={gamma_fwd:.1f}$, $n={n_obs}$ pts",
