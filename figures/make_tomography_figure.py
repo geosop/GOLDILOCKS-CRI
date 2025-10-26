@@ -195,7 +195,7 @@ def main():
     
     leg1 = ax1.legend(
         loc="upper right",
-        bbox_to_anchor=(0.98, 0.18),   # right edge, lower y → move downward
+        bbox_to_anchor=(0.98, 0.22),   # right edge, lower y → move downward
         frameon=True, fancybox=True,
         borderaxespad=0.0, handlelength=1.2, handletextpad=0.35
     )
