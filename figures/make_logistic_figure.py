@@ -61,14 +61,14 @@ def main():
 
     ax.fill_between(df_band['q'], df_band['G_low_a1'], df_band['G_high_a1'],
                     facecolor=col_teal1, alpha=0.45, edgecolor=col_teal1, linewidth=0.6,
-                    label=f"{params['ci_percent']}% CI (bootstrap) — a1")
+                    label=f"{params['ci_percent']}% sim. bootstrap band — a1")
     ax.plot(df_band['q'], df_band['G_central_a1'], color=col_blue1, linewidth=1.2,
             label=r"Fitted $G(q\mid a_1)$")
 
     if two:
         ax.fill_between(df_band['q'], df_band['G_low_a2'], df_band['G_high_a2'],
                         facecolor=col_teal2, alpha=0.45, edgecolor=col_teal2, linewidth=0.6,
-                        label=f"{params['ci_percent']}% CI (bootstrap) — a2")
+                        label=f"{params['ci_percent']}% sim. bootstrap band — a2")
         ax.plot(df_band['q'], df_band['G_central_a2'], color=col_purp2, linewidth=1.2,
                 label=r"Fitted $G(q\mid a_2)$")
 
