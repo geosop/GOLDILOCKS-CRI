@@ -292,7 +292,7 @@ def main():
             ax_a.fill_between(
                 tau_fit, y_lo, y_hi,
                 facecolor='green', edgecolor='none',
-                alpha=0.25, zorder=1.3, label='95% HC3 band'
+                alpha=0.25, zorder=1.3, label='95% HC3 confidense band'
             )
             # 3) Band edges, BELOW the orange line so they never cover it
             ax_a.plot(tau_fit, y_lo, color='green', lw=0.8, alpha=0.9, zorder=2.0, label='_nolegend_')
@@ -304,8 +304,8 @@ def main():
 
         # Two-line title: headline + metrics
         title = (
-            r"log-linear fit (OLS) with 95% HC3 CI" + "\n" +
-            rf"slope = {slope:.3f} (CI {ci_low:.3f}, {ci_high:.3f}); "
+            r"log-linear fit (OLS) with 95% HC3 confidence band" + "\n" +
+            rf"slope = {slope:.3f} (HC3 CI {ci_low:.3f}, {ci_high:.3f}); "
             rf"$\widehat{{\tau}}_{{\mathrm{{fut}}}}$ = {tau_fut_hat:.3f} s"
         )
     else:
