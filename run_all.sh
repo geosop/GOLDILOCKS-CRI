@@ -226,6 +226,35 @@ else
   echo "⚠️  figures/EEG_flowchart_SIfigure1.py not found; skipping." >&2
 fi
 
+# --- CRI Main Figure 1 (TikZ → PDF & PNG) ---
+if [[ "${SKIP_TEX}" != "1" ]]; then
+  if command -v latexmk >/dev/null 2>&1; then
+    echo
+    echo "🧩 Compile TikZ (latexmk)"
+    latexmk -pdf -shell-escape -interaction=nonstopmode -halt-on-error \
+      -output-directory=figures/output \
+      figures/CRI-manuscript_figure_1.tex
+
+    if command -v pdftocairo >/dev/null 2>&1; then
+      echo
+      echo "🖼 PDF → PNG (pdftocairo)"
+      pdftocairo -png -singlefile -r 600 \
+        figures/output/CRI-manuscript_figure_1.pdf \
+        figures/output/CRI-manuscript_figure_1
+    elif command -v magick >/dev/null 2>&1; then
+      echo
+      echo "🖼 PDF → PNG (ImageMagick)"
+      magick -density 600 figures/output/CRI-manuscript_figure_1.pdf \
+             -quality 100 figures/output/CRI-manuscript_figure_1.png
+    else
+      echo "⚠️  Neither 'pdftocairo' nor 'magick' found; PNG not generated." >&2
+    fi
+  else
+    echo "ℹ️  'latexmk' not found; skipping TikZ compile. Set CRI_SKIP_TEX=1 to silence." >&2
+  fi
+else
+  echo "ℹ️  CRI_SKIP_TEX=1 — skipping TikZ compile."
+fi
 
 echo
 echo "✅ Pipeline complete!"
