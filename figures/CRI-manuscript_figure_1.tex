@@ -36,26 +36,26 @@
 
 % Top row
 \node[kern, fill=teal!8, draw=teal!60!black] (mem)
-  {$\mathbf{D_{\mathrm{mem}}[\rho(t)]}$\\[-1mm]\scriptsize $\displaystyle \int_{0}^{\infty}K(s)\,\rho(t-s)\,ds$};
+  {\textbf{[mem op]}\\[-1mm]\scriptsize [kernel integral]};
 \node[kern, fill=blue!8, draw=blue!60!black, right=of mem, xshift=10mm] (sens)
-  {$\mathbf{D_{\mathrm{sens}}[\rho(t)]}$\\[-1mm]\scriptsize Markovian};
+  {\textbf{[sens op]}\\[-1mm]\scriptsize [note]};
 
 % Future as circle with thick outer green ring
 \node[futcircle, right=of sens, xshift=10mm] (fut)
-  {$\mathbf{D_{\mathrm{future}}[\rho(t)]}$};
+  {\textbf{[future op]}};
 \node[tinycap, below=1.5mm of fut]
-  {$\displaystyle \int_{0}^{T_0} w(\tau_f,t)\,\mathcal{D}\!\big[L_{b,f}(\tau_f)\big]\,\rho(t)\,d\tau_f$};
+  {[future integral]};
 
 % Gate
 \node[gatebox, above=of sens, yshift=12mm] (gate)
-  {Goldilocks Gate\\[-0.5mm]\(\displaystyle G\!\big(P(\tau_f)-p_0(a(t))\big)\)};
+  {Goldilocks Gate\\[-0.5mm][gate formula]};
 
-\draw[arr] (mem) -- node[midway,above,sloped,tinycap]{\(\textstyle K(s)\)} (sens);
+\draw[arr] (mem) -- node[midway,above,sloped,tinycap]{[K(s)]} (sens);
 \draw[arr] (sens) -- (fut);
 
 \draw[darr] (gate.east) .. controls +(1.3,0.0) and +(-0.6,1.2) .. (fut.north)
   node[pos=0.45, below=7pt, xshift=8pt, text=purple!70!black, font=\scriptsize]
-  {$\displaystyle w(\tau_f,t)=\kappa_w(t)\,G\!\big(P(\tau_f)-p_0(a(t))\big)\,e^{-\tau_f/\tau_{\mathrm{fut}}}$};
+  {[weight formula]};
 
 \node[title, above=9mm of gate] {Kernel interactions};
 
@@ -66,9 +66,9 @@
     xtick={0,0.5,1}, ytick={0,0.5,1},
     ticklabel style={font=\tiny}, label style={font=\tiny},
     every axis plot/.append style={line width=0.9pt},
-    axis lines=left, title style={font=\scriptsize}, title={\scriptsize Gate \(G(x)\)}]
+    axis lines=left, title style={font=\scriptsize}, title={\scriptsize [Gate title]}]
     \addplot [domain=0:1, samples=200] {1/(1+exp(-(x-0.5)/0.08))};
-    \node[font=\tiny] at (axis cs:0.5,0.12) {$p_0(a)$};
+    \node[font=\tiny] at (axis cs:0.5,0.12) {[p0]};
     \draw[dashed] (axis cs:0.5,0) -- (axis cs:0.5,1);
   \end{axis}
 \end{tikzpicture}
@@ -79,32 +79,31 @@
     xtick={0,0.5,1}, ytick={0,0.5,1},
     ticklabel style={font=\tiny}, every axis plot/.append style={line width=0.9pt},
     axis lines=left, title style={font=\scriptsize},
-    title={\scriptsize Decay \(e^{-\tau_f/\tau_{\mathrm{fut}}}\)}]
+    title={\scriptsize [Decay title]}]
     \addplot [domain=0:1, samples=200] {exp(-x/0.25)};
   \end{axis}
 \end{tikzpicture}
 };
-\node[tinycap, right=1mm of inset1] {gate on cumulative probability \(P(\tau_f)\)};
-\node[tinycap, right=1mm of inset2] {future decay with time constant \(\tau_{\mathrm{fut}}\)};
+\node[tinycap, right=1mm of inset1] {[caption 1]};
+\node[tinycap, right=1mm of inset2] {[caption 2]};
 
 % Badges
 \coordinate (badgeY)  at ($(fut.north east)+(0,12mm)$);
 \coordinate (badgeY2) at ($(badgeY)+(0,-6mm)$);
 
 \node[badge, anchor=south] (badge1) at ($(inset1.center |- badgeY)$)
-  {$p(\tau_f)$: density [s$^{-1}$] \ \ $P(\tau_f)=\int_0^{\tau_f}\!p(u_f)\,du_f\in[0,1]$};
-
+  {[density defn]};
 \node[badge, anchor=south, yshift=-3mm] (badge2) at ($(inset2.center |- badgeY2)$)
-  {$\kappa_w(t)$: [s$^{-1}$] \ \ $\displaystyle \gamma_b(t)=\int_0^{\T_0}\!w(\tau_f,t)\,d\tau_f$};
+  {[kappa defn]};
 
 % Bottom row (reduced surrogate)
 \node[title, below=16mm of sens] (title2) {Reduced surrogate (single effective retro-weight)};
 \node[chan, fill=gray!7, draw=black!70, below=6mm of title2] (collapse)
-  {$\displaystyle \gamma_b(t)=\int_0^{\T_0}\! w(\tau_f,t)\,d\tau_f$};
+  {[collapse formula]};
 \node[kern, fill=magenta!10, draw=magenta!60!black, right=of collapse, xshift=6mm] (Lb)
-  {$\mathbf{D_{b}[\rho(t)]}$\\[-0.5mm]\scriptsize single jump w/ weight $\gamma_b(t)$};
+  {\textbf{[Db block]}\\[-0.5mm]\scriptsize [single jump text]};
 \node[kern, fill=blue!10, draw=blue!60!black, right=of Lb, xshift=6mm] (fwd)
-  {$\mathbf{D_{\mathrm{fwd}}[\rho(t)]}$\\[-0.5mm]\scriptsize control (time-local)};
+  {\textbf{[fwd block]}\\[-0.5mm]\scriptsize [control text]};
 
 \begin{scope}[on background layer]
   \draw[arr, preaction={draw=white, line width=3pt}]
@@ -114,7 +113,7 @@
 \end{scope}
 
 \node[tinycap, below=4mm of Lb]
-  {collapse of the continuum $\{L_b(\tau_f,t)\}_{\tau_f\in[0,T_0]}$ to a single effective jump $L_b(t)$ with \emph{weight} $\gamma_b(t)$ (see SI)};
+  {[collapse explanation]};
 
 \end{tikzpicture}
 
