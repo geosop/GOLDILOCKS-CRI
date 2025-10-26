@@ -199,7 +199,7 @@ def main():
         band['delta_ms'], band['lnA_low'], band['lnA_high'],
         facecolor='#5B8FD9', alpha=0.58, zorder=1,
         edgecolor='#3E6FB8', linewidth=0.9,
-        label=f"{p.get('ci_percent', 95)}% CI (bootstrap)"
+        label=f"{p.get('ci_percent', 95)}% sim. bootstrap band"
     )
 
     # Central fitted curve (black)
