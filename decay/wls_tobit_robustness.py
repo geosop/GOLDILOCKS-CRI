@@ -152,7 +152,7 @@ def _plot_tau_panel(out: dict, out_png: str, out_pdf: str):
     # OLS CI bar (thick horizontal line)
     ax.hlines(
         y, out["ols_ci_lo_ms"], out["ols_ci_hi_ms"],
-        linewidth=4, color="C0", label="OLS 95% CI", zorder=1
+        linewidth=4, color="C0", label="OLS 95% sim. bootstrap CI", zorder=1
     )
     
     # marker-only entries (no connecting line in legend)
