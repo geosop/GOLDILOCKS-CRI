@@ -154,25 +154,24 @@ def main():
     # ---------------- Figure --------------------------------------------------
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(180/25.4, 60/25.4), constrained_layout=True)
 
-    # Panel label outside axes, top-left of the full figure (RSOS style: roman brackets + italic letter)
+    # Panel label outside axes, top-left of the full figure (roman brackets + italic letter)
     fig.text(
-        0.01, 0.99, r'(\mathit{c})', transform=fig.transFigure,
-        ha='left', va='top', fontsize=9,  # RS suggests ~9 pt for figure labels
-        bbox=dict(facecolor='white', edgecolor='0.85', boxstyle='square,pad=0.15', alpha=0.95),
+        0.006, 0.994, r'$(\mathit{c})$',
+        transform=fig.transFigure,
+        ha='left', va='top',
+        fontsize=9,  # legible at 180 mm width
+        color='black',
         clip_on=False, zorder=10
-    )
+     )
 
-    # LEFT: P(t) with units
-    t_ms = 1000.0 * np.asarray(t_s)
-    for gb, curve in zip(gamma_b_vals, pops):
-        ax1.plot(t_ms, curve, label=rf"$\gamma_b={float(gb):.1f}$")
+     # --- LEFT PANEL CONTENT (unchanged) ---
+     t_ms = 1000.0 * np.asarray(t_s)
+     for gb, curve in zip(gamma_b_vals, pops):
+         ax1.plot(t_ms, curve, label=rf"$\gamma_b={float(gb):.1f}$")
     ax1.set_xlim(0.0, left_xlim_ms)
     ax1.set_xlabel(r"Time $t$ (ms)")
-    ax1.set_ylabel(r"Population $P(t)$ (–)")  # dimensionless
+    ax1.set_ylabel(r"Population $P(t)$ (–)")
     ax1.set_title(r"$P(t)=\exp\!\left[-(\kappa_0/2)\,(\gamma_{\mathrm{fwd}}+\gamma_b)\,t\right]$")
-    # Panel label "(c)" at top-left of LEFT panel only
-    ax1.text(0.015, 0.985, "(c)", transform=ax1.transAxes,
-             ha="left", va="top", fontsize=9, fontweight="bold", zorder=6)
 
     leg1 = ax1.legend(
         loc="upper right", bbox_to_anchor=(0.98, 0.22),
