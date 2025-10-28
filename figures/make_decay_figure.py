@@ -127,6 +127,14 @@ def main():
 
     fig, ax = plt.subplots(figsize=(88/25.4, 58/25.4))
 
+    # Panel label outside axes, top-left of the full figure (RSOS style: roman brackets + italic letter)
+    fig.text(
+        0.01, 0.99, r'(\mathit{a})', transform=fig.transFigure,
+        ha='left', va='top', fontsize=9,  # RS suggests ~9 pt for figure labels
+        bbox=dict(facecolor='white', edgecolor='0.85', boxstyle='square,pad=0.15', alpha=0.95),
+        clip_on=False, zorder=10
+    )
+    
     ax.fill_between(
         band['delta_ms'], band['lnA_low'], band['lnA_high'],
         facecolor='#5B8FD9', alpha=0.58, zorder=1,
