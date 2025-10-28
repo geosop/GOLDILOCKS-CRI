@@ -129,9 +129,9 @@ def main():
 
     # Panel label outside axes, top-left of the full figure (RSOS style: roman brackets + italic letter)
     fig.text(
-        0.01, 0.99, r'(\mathit{a})', transform=fig.transFigure,
-        ha='left', va='top', fontsize=9,  # RS suggests ~9 pt for figure labels
-        bbox=dict(facecolor='white', edgecolor='0.85', boxstyle='square,pad=0.15', alpha=0.95),
+        0.006, 0.994, r'$(\mathit{c})$',
+        transform=fig.transFigure,
+        ha='left', va='top', fontsize=9, color='black',
         clip_on=False, zorder=10
     )
     
@@ -183,10 +183,10 @@ def main():
             bbox=dict(boxstyle="round,pad=0.25", facecolor="white", alpha=0.80, edgecolor="none"))
 
     # ---------- Panel label "(a)" (top-left, bold) ----------
-    ax.text(float(args.panel_x), float(args.panel_y), str(args.panel_label),
-            transform=ax.transAxes, ha="left", va="top",
-            fontsize=9, fontweight="bold", color="black",
-            zorder=5)
+    #ax.text(float(args.panel_x), float(args.panel_y), str(args.panel_label),
+    #        transform=ax.transAxes, ha="left", va="top",
+    #        fontsize=9, fontweight="bold", color="black",
+    #        zorder=5)
 
     # ---------- Inset with units ----------
     inset_w_pct = f"{float(os.getenv('CRI_INSET_W', 0.22))*100:.0f}%"
