@@ -129,7 +129,7 @@ def main():
 
     # Panel label outside axes, top-left of the full figure (RSOS style: roman brackets + italic letter)
     fig.text(
-        0.006, 0.994, r'$(\mathit{c})$',
+        0.006, 0.994, r'$(\mathit{a})$',
         transform=fig.transFigure,
         ha='left', va='top', fontsize=9, color='black',
         clip_on=False, zorder=10
