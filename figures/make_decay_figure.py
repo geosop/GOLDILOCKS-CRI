@@ -132,7 +132,7 @@ def main():
     # Panel label outside axes, top-left of the full figure (RSOS style: roman brackets + italic letter)
     # panel label outside the axes, but a touch lower than before
     LABEL_X, LABEL_Y = 0.008, 0.975   # ↓ was 0.006, 0.994
-    fig.text(LABEL_X, LABEL_Y, r'$(\mathit{b})$',
+    fig.text(LABEL_X, LABEL_Y, r'$(\mathit{a})$',
              transform=fig.transFigure, ha='left', va='top',
              fontsize=9, color='black', clip_on=False, zorder=10)
 
