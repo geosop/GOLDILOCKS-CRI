@@ -59,14 +59,16 @@ def main():
     col_grey  = "0.45"
 
     fig, ax = plt.subplots(figsize=(88/25.4, (88/1.55)/25.4))
+    # tighten the top margin so the axes sit closer to the top edge
+    fig.subplots_adjust(top=0.965)   # 0.97–0.99 for even less whitespace
 
+    
     # Panel label outside axes, top-left of the full figure (roman brackets + italic letter)
-    fig.text(
-        0.006, 0.994, r'$(\mathit{b})$',
-        transform=fig.transFigure,
-        ha='left', va='top', fontsize=9, color='black',
-        clip_on=False, zorder=10
-    )
+    # panel label outside the axes, but a touch lower than before
+    LABEL_X, LABEL_Y = 0.008, 0.975   # ↓ was 0.006, 0.994
+    fig.text(LABEL_X, LABEL_Y, r'$(\mathit{b})$',
+             transform=fig.transFigure, ha='left', va='top',
+             fontsize=9, color='black', clip_on=False, zorder=10)
     
     # CI ribbons + fitted curves
     ax.fill_between(df_band['q'], df_band['G_low_a1'], df_band['G_high_a1'],
@@ -125,8 +127,12 @@ def main():
 
     pdf = os.path.join(out_dir, 'Box2b_logistic_refined.pdf')
     png = os.path.join(out_dir, 'Box2b_logistic_refined.png')
-    fig.savefig(pdf, bbox_inches='tight')                                   # vector for print
-    fig.savefig(png, dpi=int(params.get('figure_dpi', 1200)), bbox_inches='tight')  # high-dpi raster
+    # when saving, keep a small pad so tight cropping doesn’t touch the label
+    fig.savefig(pdf, bbox_inches='tight', pad_inches=0.01)
+    fig.savefig(png, dpi=int(params.get('figure_dpi', 1200)),
+                bbox_inches='tight', pad_inches=0.01)
+    #fig.savefig(pdf, bbox_inches='tight')                                   # vector for print
+    #fig.savefig(png, dpi=int(params.get('figure_dpi', 1200)), bbox_inches='tight')  # high-dpi raster
     plt.close(fig)
     print(f"Saved logistic figure → {pdf} and {png}")
 
