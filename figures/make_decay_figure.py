@@ -126,15 +126,16 @@ def main():
     A_min, lnA_min = resolve_detection_threshold(p, band)
 
     fig, ax = plt.subplots(figsize=(88/25.4, 58/25.4))
-
-    # Panel label outside axes, top-left of the full figure (RSOS style: roman brackets + italic letter)
-    fig.text(
-        0.006, 0.994, r'$(\mathit{a})$',
-        transform=fig.transFigure,
-        ha='left', va='top', fontsize=9, color='black',
-        clip_on=False, zorder=10
-    )
+    # tighten the top margin so the axes sit closer to the top edge
+    fig.subplots_adjust(top=0.965)   # 0.97–0.99 for even less whitespace
     
+    # Panel label outside axes, top-left of the full figure (RSOS style: roman brackets + italic letter)
+    # panel label outside the axes, but a touch lower than before
+    LABEL_X, LABEL_Y = 0.008, 0.975   # ↓ was 0.006, 0.994
+    fig.text(LABEL_X, LABEL_Y, r'$(\mathit{b})$',
+             transform=fig.transFigure, ha='left', va='top',
+             fontsize=9, color='black', clip_on=False, zorder=10)
+
     ax.fill_between(
         band['delta_ms'], band['lnA_low'], band['lnA_high'],
         facecolor='#5B8FD9', alpha=0.58, zorder=1,
@@ -182,12 +183,6 @@ def main():
             transform=trans, fontsize=6.0, va="top",
             bbox=dict(boxstyle="round,pad=0.25", facecolor="white", alpha=0.80, edgecolor="none"))
 
-    # ---------- Panel label "(a)" (top-left, bold) ----------
-    #ax.text(float(args.panel_x), float(args.panel_y), str(args.panel_label),
-    #        transform=ax.transAxes, ha="left", va="top",
-    #        fontsize=9, fontweight="bold", color="black",
-    #        zorder=5)
-
     # ---------- Inset with units ----------
     inset_w_pct = f"{float(os.getenv('CRI_INSET_W', 0.22))*100:.0f}%"
     inset_h_pct = f"{float(os.getenv('CRI_INSET_H', 0.20))*100:.0f}%"
@@ -209,8 +204,12 @@ def main():
     os.makedirs(out_folder, exist_ok=True)
     out_pdf = os.path.join(out_folder, 'Box2a_decay_refined.pdf')
     out_png = os.path.join(out_folder, 'Box2a_decay_refined.png')
-    fig.savefig(out_pdf, bbox_inches='tight')
-    fig.savefig(out_png, dpi=int(p.get('figure_dpi', 1200)), bbox_inches='tight')
+    # when saving, keep a small pad so tight cropping doesn’t touch the label
+    fig.savefig(pdf, bbox_inches='tight', pad_inches=0.01)
+    fig.savefig(png, dpi=int(params.get('figure_dpi', 1200)),
+                bbox_inches='tight', pad_inches=0.01)
+    #fig.savefig(out_pdf, bbox_inches='tight')
+    #fig.savefig(out_png, dpi=int(p.get('figure_dpi', 1200)), bbox_inches='tight')
     plt.close(fig)
     print("Saved Box-2(a) to", out_pdf, "and", out_png)
 
