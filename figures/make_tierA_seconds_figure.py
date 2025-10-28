@@ -347,14 +347,23 @@ def main():
     )
     ax_a.grid(True, alpha=0.3)
     ax_a.margins(x=0.02, y=0.02)
+    
+    # Panel label outside the axes, top-left of the *figure* (RSOS style)
+    fig_a.text(
+        0.010, 0.975, r'$(\mathit{a})$',
+        transform=fig_a.transFigure, ha='left', va='top',
+        fontsize=9, color='black', clip_on=False, zorder=1000
+    ) 
+
     fig_a.tight_layout()
     add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.012, ypad=0.008)
 
     # (optional) a bit more pixel resolution helps thin bands show up
     for ext in ("pdf", "png"):
         fn = os.path.join(args.outdir, f"TierA_decay_loglinear.{ext}")
-        fig_a.savefig(fn, bbox_inches="tight", pad_inches=0.01,
-                      dpi=200 if ext == "png" else None)
+        fig_a.savefig(fn, bbox_inches="tight",             
+                      pad_inches=0.02 if ext == "pdf" else 0.02,
+                      dpi=200 if ext == "png" else None)                
 
 
     # ============================================================
@@ -446,13 +455,19 @@ def main():
             bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.75),
             clip_on=True,
         )
-
+    # Panel label outside the axes, top-left of the *figure* (RSOS style)
+    fig_b.text(
+        0.010, 0.975, r'$(\mathit{b})$',
+        transform=fig_b.transFigure, ha='left', va='top',
+        fontsize=9, color='black', clip_on=False, zorder=1000
+    )
     fig_b.tight_layout()
     add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.012, ypad=0.008)
   
     for ext in ("pdf", "png"):
         fig_b.savefig(os.path.join(args.outdir, f"TierA_gate_saturation.{ext}"),
-                      bbox_inches="tight", pad_inches=0.01)
+                      bbox_inches="tight", pad_inches=0.02,
+                      dpi=200 if ext == "png" else None)
 
     print("Wrote:",
           os.path.join(args.outdir, "TierA_decay_loglinear.pdf"),
