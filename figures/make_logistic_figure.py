@@ -108,7 +108,7 @@ def main():
 
     # Inset: derivatives (also dimensionless)
     ax_ins = inset_axes(ax, width='70%', height='70%',
-                        loc='lower left', bbox_to_anchor=(0.74, 0.27, 0.38, 0.38),
+                        loc='lower left', bbox_to_anchor=(0.68, 0.27, 0.38, 0.38),
                         bbox_transform=ax.transAxes)
     ax_ins.plot(df_der['q'], df_der['dGdq_a1'], color=col_blue1, linewidth=0.9,
                 label=r"$\mathrm{d}G/\mathrm{d}q$ (a$_1$)")
