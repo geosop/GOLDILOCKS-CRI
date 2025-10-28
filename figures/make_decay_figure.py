@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-figures/make_decay_figure.py — 
+figures/make_decay_figure.py 
 
-Adds explicit units to all axes and to the slope annotation:
-- Main:  τ_f (ms),  ln A_pre(τ_f) (–)
-- Inset: τ_f (ms),  A_pre (–)
-- Text:  slope = −1/τ_fut (s⁻¹)
 """
 import os
 import yaml
@@ -18,7 +14,6 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from matplotlib.ticker import MaxNLocator
 from matplotlib import transforms as mtransforms
 
-# Matplotlib defaults (portable on CI)
 mpl.rcParams.update({
     "font.family":      "DejaVu Sans",
     "font.size":        8,
@@ -99,6 +94,10 @@ def parse_args():
     p.add_argument("--inset-h", type=float, default=float(os.getenv("CRI_INSET_H", 0.20)))
     p.add_argument("--ann-x",   type=float, default=float(os.getenv("CRI_ANN_X", 0.66)))
     p.add_argument("--ann-yfrac", type=float, default=float(os.getenv("CRI_ANN_YFRAC", 0.55)))
+    # NEW: panel label controls
+    p.add_argument("--panel-label", default=os.getenv("CRI_PANEL_LABEL", "(a)")),
+    p.add_argument("--panel-x", type=float, default=float(os.getenv("CRI_PANEL_X", 0.015))),
+    p.add_argument("--panel-y", type=float, default=float(os.getenv("CRI_PANEL_Y", 0.985))),
     return p.parse_args()
 
 def main():
@@ -122,7 +121,7 @@ def main():
 
     tau_s, lo_s, hi_s = _load_tau_fut_seconds(out_dir_data)
     tau_ms = tau_s * 1e3
-    slope_per_s = -1.0 / tau_s                         # units: s^-1
+    slope_per_s = -1.0 / tau_s                         # s^-1
 
     A_min, lnA_min = resolve_detection_threshold(p, band)
 
@@ -134,78 +133,79 @@ def main():
         edgecolor='#3E6FB8', linewidth=0.9,
         label=f"{p.get('ci_percent', 95)}% sim. bootstrap band"
     )
-    ax.plot(
-        band['delta_ms'], band['lnA_central'],
-        color='black', linewidth=1.3, zorder=2,
-        label=r"$\ln A_{\mathrm{pre}}(\tau_f)$"
-    )
+    ax.plot(band['delta_ms'], band['lnA_central'], color='black', linewidth=1.3, zorder=2,
+            label=r"$\ln A_{\mathrm{pre}}(\tau_f)$")
 
-    if {'lnA_pre', 'se_lnA'}.issubset(pts.columns):
-        ax.errorbar(
-            pts['delta_ms'], pts['lnA_pre'], yerr=pts['se_lnA'],
-            fmt='o', color='#FF8C1A', markersize=3.8, elinewidth=0.75,
-            capsize=1.8, zorder=3, label="Sampled delays"
-        )
+    if {'lnA_pre','se_lnA'}.issubset(pts.columns):
+        ax.errorbar(pts['delta_ms'], pts['lnA_pre'], yerr=pts['se_lnA'],
+                    fmt='o', color='#FF8C1A', markersize=3.8, elinewidth=0.75, capsize=1.8,
+                    zorder=3, label="Sampled delays")
     else:
         ax.scatter(pts['delta_ms'], pts['lnA_pre'], s=16, color='#FF8C1A', zorder=3, label="Sampled delays")
 
     ax.axhline(lnA_min, linestyle='--', color='#D62728', linewidth=1.0,
                label=r"Detection bound: $\ln A_{\min}$")
 
-    # ---- Axis labels with units ----
+    # Units on axes
     ax.set_xlabel(r"$\tau_f$ (ms)")
-    ax.set_ylabel(r"$\ln A_{\mathrm{pre}}(\tau_f)$ (–)")   # ln of a ratio → dimensionless (–)
+    ax.set_ylabel(r"$\ln A_{\mathrm{pre}}(\tau_f)$ (–)")
     ax.set_xlim(-0.5, 20.5)
 
-    leg = ax.legend(loc='upper right', bbox_to_anchor=(0.98, 0.98), frameon=True, fancybox=True)
-    frame = leg.get_frame(); frame.set_facecolor('#f2f2f2'); frame.set_edgecolor('0.80'); frame.set_alpha(1.0); frame.set_linewidth(0.6)
+    leg = ax.legend(loc='upper right', bbox_to_anchor=(0.98, 0.98),
+                    frameon=True, fancybox=True)
+    f = leg.get_frame(); f.set_facecolor('#f2f2f2'); f.set_edgecolor('0.80'); f.set_alpha(1.0); f.set_linewidth(0.6)
 
-    # Reference line with slope −1/τ_fut (units s^-1); compute in seconds, plot vs ms
-    i0     = int(np.argmin(band['delta_ms'].values))
-    x0_ms  = float(band['delta_ms'].values[i0]); x0_s = x0_ms / 1000.0
-    y0     = float(band['lnA_central'].values[i0])
+    # CRI reference line (slope −1/τ_fut in s^-1, plotted vs ms)
+    i0 = int(np.argmin(band['delta_ms'].values))
+    x0_ms = float(band['delta_ms'].values[i0]); x0_s = x0_ms / 1000.0
+    y0 = float(band['lnA_central'].values[i0])
     x_line_ms = np.linspace(0.0, 20.0, 200); x_line_s = x_line_ms / 1000.0
-    y_cri  = y0 + slope_per_s * (x_line_s - x0_s)
+    y_cri = y0 + slope_per_s * (x_line_s - x0_s)
     ax.plot(x_line_ms, y_cri, ls='--', lw=1.1, color='0.25',
             label=rf"CRI slope −1/τ$_{{\mathrm{{fut}}}}$ ({tau_ms:.1f} ms)")
 
-    # Annotation with units for the slope
+    # Slope/τ annotation (with units)
     ymin, ymax = ax.get_ylim()
     y_ann = ymin + clamp(args.ann_yfrac, 0.0, 1.0) * (ymax - ymin)
-    x_ann_axes = clamp(args.ann_x, 0.0, 1.0)
-    ann_txt = (r"$\mathrm{slope} = -1/\tau_{\mathrm{fut}}\ (\mathrm{s}^{-1})$"
-               + "\n" + rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\ \mathrm{{ms}}$")
     trans = mtransforms.blended_transform_factory(ax.transAxes, ax.transData)
-    ax.text(x_ann_axes, y_ann, ann_txt, transform=trans, fontsize=6.0, va="top",
+    ax.text(args.ann_x, y_ann,
+            r"$\mathrm{slope} = -1/\tau_{\mathrm{fut}}\ (\mathrm{s}^{-1})$"
+            + "\n" + rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\ \mathrm{{ms}}$",
+            transform=trans, fontsize=6.0, va="top",
             bbox=dict(boxstyle="round,pad=0.25", facecolor="white", alpha=0.80, edgecolor="none"))
 
-    # ---- Inset (with units on axes) ----
-    inset_w_pct = f"{args.inset_w*100:.0f}%"; inset_h_pct = f"{args.inset_h*100:.0f}%"
-    ix = clamp(args.inset_x, 0.0, 1.0 - args.inset_w - 0.01)
-    iy = clamp(args.inset_y, 0.0, 1.0 - args.inset_h - 0.01)
-    ax_ins = inset_axes(ax, width=inset_w_pct, height=inset_h_pct,
-                        loc='lower left', bbox_to_anchor=(ix, iy, 1, 1),
-                        bbox_transform=ax.transAxes, borderpad=0.2)
+    # ---------- Panel label "(a)" (top-left, bold) ----------
+    ax.text(float(args.panel_x), float(args.panel_y), str(args.panel_label),
+            transform=ax.transAxes, ha="left", va="top",
+            fontsize=9, fontweight="bold", color="black",
+            zorder=5)
+
+    # ---------- Inset with units ----------
+    inset_w_pct = f"{float(os.getenv('CRI_INSET_W', 0.22))*100:.0f}%"
+    inset_h_pct = f"{float(os.getenv('CRI_INSET_H', 0.20))*100:.0f}%"
+    ix = clamp(float(args.inset_x), 0.0, 1.0 - float(os.getenv('CRI_INSET_W', 0.22)) - 0.01)
+    iy = clamp(float(args.inset_y), 0.0, 1.0 - float(os.getenv('CRI_INSET_H', 0.20)) - 0.01)
+    ax_ins = inset_axes(ax, width=inset_w_pct, height=inset_h_pct, loc='lower left',
+                        bbox_to_anchor=(ix, iy, 1, 1), bbox_transform=ax.transAxes, borderpad=0.2)
     ax_ins.plot(band['delta_ms'], A_central, color='black', linewidth=0.9, zorder=2)
     ax_ins.scatter(pts['delta_ms'], A_pts, s=12, color='#FF8C1A', zorder=3)
     ax_ins.axhline(A_min, linestyle='--', color='#D62728', linewidth=0.7)
-
     ax_ins.set_title(r"Raw $A_{\mathrm{pre}}(\tau_f)$", fontsize=6.5, pad=1.5)
     ax_ins.set_xlabel(r"$\tau_f$ (ms)", fontsize=6.5)
-    ax_ins.set_ylabel(r"$A_{\mathrm{pre}}$ (–)", fontsize=6.5)   # dimensionless
+    ax_ins.set_ylabel(r"$A_{\mathrm{pre}}$ (–)", fontsize=6.5)
     ax_ins.tick_params(labelsize=6)
     ax_ins.yaxis.set_major_locator(MaxNLocator(nbins=4, prune='upper'))
     ax_ins.xaxis.set_major_locator(MaxNLocator(nbins=6))
     ax_ins.set_xlim(-0.5, 20.5)
 
-    # Save
     os.makedirs(out_folder, exist_ok=True)
     out_pdf = os.path.join(out_folder, 'Box2a_decay_refined.pdf')
     out_png = os.path.join(out_folder, 'Box2a_decay_refined.png')
-    fig.savefig(out_pdf, bbox_inches='tight')                               # vector for print
-    fig.savefig(out_png, dpi=int(p.get('figure_dpi', 1200)), bbox_inches='tight')  # high-dpi raster
+    fig.savefig(out_pdf, bbox_inches='tight')
+    fig.savefig(out_png, dpi=int(p.get('figure_dpi', 1200)), bbox_inches='tight')
     plt.close(fig)
     print("Saved Box-2(a) to", out_pdf, "and", out_png)
 
 if __name__ == "__main__":
     main()
+
