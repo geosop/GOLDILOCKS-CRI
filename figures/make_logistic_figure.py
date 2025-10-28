@@ -60,14 +60,13 @@ def main():
 
     fig, ax = plt.subplots(figsize=(88/25.4, (88/1.55)/25.4))
 
-    # Panel label outside axes, top-left of the full figure (RSOS style: roman brackets + italic letter)
+    # Panel label outside axes, top-left of the full figure (roman brackets + italic letter)
     fig.text(
-        0.01, 0.99, r'(\mathit{b})', transform=fig.transFigure,
-        ha='left', va='top', fontsize=9,  # RS suggests ~9 pt for figure labels
-        bbox=dict(facecolor='white', edgecolor='0.85', boxstyle='square,pad=0.15', alpha=0.95),
+        0.006, 0.994, r'$(\mathit{b})$',
+        transform=fig.transFigure,
+        ha='left', va='top', fontsize=9, color='black',
         clip_on=False, zorder=10
     )
-
     
     # CI ribbons + fitted curves
     ax.fill_between(df_band['q'], df_band['G_low_a1'], df_band['G_high_a1'],
@@ -104,10 +103,6 @@ def main():
     ax.set_xlim(0, 1); ax.set_ylim(0, 1)
     ax.set_xlabel(r"$q$ (–)")
     ax.set_ylabel(r"$G(q\mid a)$ (–)")
-
-    # RSOS-style panel label "(b)" at top-left
-    ax.text(0.015, 0.985, "(b)", transform=ax.transAxes,
-            ha="left", va="top", fontsize=9, fontweight="bold", zorder=5)
 
     ax.legend(loc='upper left', frameon=True)
 
