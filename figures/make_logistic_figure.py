@@ -60,6 +60,15 @@ def main():
 
     fig, ax = plt.subplots(figsize=(88/25.4, (88/1.55)/25.4))
 
+    # Panel label outside axes, top-left of the full figure (RSOS style: roman brackets + italic letter)
+    fig.text(
+        0.01, 0.99, r'(\mathit{b})', transform=fig.transFigure,
+        ha='left', va='top', fontsize=9,  # RS suggests ~9 pt for figure labels
+        bbox=dict(facecolor='white', edgecolor='0.85', boxstyle='square,pad=0.15', alpha=0.95),
+        clip_on=False, zorder=10
+    )
+
+    
     # CI ribbons + fitted curves
     ax.fill_between(df_band['q'], df_band['G_low_a1'], df_band['G_high_a1'],
                     facecolor=col_teal1, alpha=0.45, edgecolor=col_teal1, linewidth=0.6,
