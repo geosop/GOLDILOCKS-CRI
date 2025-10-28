@@ -204,12 +204,12 @@ def main():
     os.makedirs(out_folder, exist_ok=True)
     out_pdf = os.path.join(out_folder, 'Box2a_decay_refined.pdf')
     out_png = os.path.join(out_folder, 'Box2a_decay_refined.png')
-    # when saving, keep a small pad so tight cropping doesn’t touch the label
-    fig.savefig(pdf, bbox_inches='tight', pad_inches=0.01)
-    fig.savefig(png, dpi=int(params.get('figure_dpi', 1200)),
+
+    # keep a small pad so tight cropping doesn’t touch the outside label
+    fig.savefig(out_pdf, bbox_inches='tight', pad_inches=0.01)
+    fig.savefig(out_png, dpi=int(p.get('figure_dpi', 1200)),
                 bbox_inches='tight', pad_inches=0.01)
-    #fig.savefig(out_pdf, bbox_inches='tight')
-    #fig.savefig(out_png, dpi=int(p.get('figure_dpi', 1200)), bbox_inches='tight')
+
     plt.close(fig)
     print("Saved Box-2(a) to", out_pdf, "and", out_png)
 
