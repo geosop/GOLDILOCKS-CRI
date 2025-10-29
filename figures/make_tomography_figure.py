@@ -173,7 +173,7 @@ def main():
     ax1.set_title(r"$P(t)=\exp\!\left[-(\kappa_0/2)\,(\gamma_{\mathrm{fwd}}+\gamma_b)\,t\right]$")
 
     leg1 = ax1.legend(
-        loc="upper right", bbox_to_anchor=(0.98, 0.40),  # was 0.22 → higher
+        loc="upper right", bbox_to_anchor=(0.98, 0.70),  # was 0.22 → higher
         frameon=True, fancybox=True, borderaxespad=0.0,
         handlelength=1.2, handletextpad=0.35
     )
