@@ -357,7 +357,7 @@ def main():
 
     #fig_a.tight_layout()
     #add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.012, ypad=0.008)
-    add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.072, ypad=0.010, fontsize=9)
+    add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.080, ypad=0.035, fontsize=9)
     # (optional) a bit more pixel resolution helps thin bands show up
     for ext in ("pdf", "png"):
         fn = os.path.join(args.outdir, f"TierA_decay_loglinear.{ext}")
@@ -465,7 +465,7 @@ def main():
   
     #fig_b.tight_layout()
     #add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.012, ypad=0.008)
-    add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.072, ypad=0.010, fontsize=9)
+    add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.080, ypad=0.035, fontsize=9)
     
     for ext in ("pdf", "png"):
         fig_b.savefig(os.path.join(args.outdir, f"TierA_gate_saturation.{ext}"),
