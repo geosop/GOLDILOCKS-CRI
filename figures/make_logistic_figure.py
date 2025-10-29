@@ -68,7 +68,7 @@ def main():
     LABEL_X, LABEL_Y = 0.008, 0.975   # ↓ was 0.006, 0.994
     fig.text(LABEL_X, LABEL_Y, r'$(\mathit{b})$',
              transform=fig.transFigure, ha='left', va='top',
-             fontsize=9, color='black', clip_on=False, zorder=10)
+             fontsize=9, color='blue', clip_on=False, zorder=10)
     
     # CI ribbons + fitted curves
     ax.fill_between(df_band['q'], df_band['G_low_a1'], df_band['G_high_a1'],
