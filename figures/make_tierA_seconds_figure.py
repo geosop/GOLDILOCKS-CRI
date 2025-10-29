@@ -37,24 +37,22 @@ try:
 except Exception:
     HAVE_YAML = False
 
-def add_panel_label_outside(fig, ax, letter, *, xpad=0.012, ypad=0.008):
+def add_panel_label_outside(fig, ax, letter, *, xpad=0.012, ypad=0.008, size=10):
     """
-    Place '({letter})' just outside the top-left of the given axes, without
+    Place '(letter)' just outside the top-left of the given axes, without
     changing the figure's top padding (safe for multi-line titles).
     """
-    fig.canvas.draw()                # finalize positions (after tight_layout)
+    fig.canvas.draw()                # finalize positions after tight_layout
     bbox = ax.get_position()         # axes bbox in figure coords
     x_lab = max(0.004, bbox.x0 - xpad)   # slightly left of axes
     y_lab = min(0.996, bbox.y1 + ypad)   # slightly above axes
 
     fig.text(
-        x_lab, y_lab, rf'$(\mathit{{{letter}}})$',
+        x_lab, y_lab, f'({letter})',
         transform=fig.transFigure, ha='left', va='top',
-        fontsize=9, color='black', clip_on=False, zorder=10
+        fontsize=size, fontstyle='italic', fontweight='bold',
+        color='black', clip_on=False, zorder=1000
     )
-
-
-
 
 # -----------------------------
 # Defaults (can be overridden)
@@ -347,13 +345,14 @@ def main():
     )
     ax_a.grid(True, alpha=0.3)
     ax_a.margins(x=0.02, y=0.02)
-    
-    # Panel label outside the axes, top-left of the *figure* (RSOS style)
-    fig_a.text(
-        0.010, 0.975, r'$(\mathit{a})$',
-        transform=fig_a.transFigure, ha='left', va='top',
-        fontsize=9, color='black', clip_on=False, zorder=1000
-    ) 
+
+
+    fig_a.tight_layout()
+    add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.012, ypad=0.008, size=10)
+    for ext in ("pdf", "png"):
+        fn = os.path.join(args.outdir, f"TierA_decay_loglinear.{ext}")
+        fig_a.savefig(fn, bbox_inches="tight", pad_inches=0.02,
+                      dpi=200 if ext == "png" else None)
 
     fig_a.tight_layout()
     add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.012, ypad=0.008)
@@ -455,12 +454,14 @@ def main():
             bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.75),
             clip_on=True,
         )
-    # Panel label outside the axes, top-left of the *figure* (RSOS style)
-    fig_b.text(
-        0.010, 0.975, r'$(\mathit{b})$',
-        transform=fig_b.transFigure, ha='left', va='top',
-        fontsize=9, color='black', clip_on=False, zorder=1000
-    )
+
+    fig_b.tight_layout()
+    add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.012, ypad=0.008, size=10)
+    for ext in ("pdf", "png"):
+        fig_b.savefig(os.path.join(args.outdir, f"TierA_gate_saturation.{ext}"),
+                      bbox_inches="tight", pad_inches=0.02,
+                      dpi=200 if ext == "png" else None) 
+  
     fig_b.tight_layout()
     add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.012, ypad=0.008)
   
