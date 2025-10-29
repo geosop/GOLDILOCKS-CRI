@@ -312,25 +312,26 @@ def main():
         bbox=dict(facecolor="#F5DEB3", edgecolor="none", alpha=0.65, boxstyle="round,pad=0.2"),
     )
 
+    # titles & layout (protect 2-line titles) 
     fig.suptitle("Tier-B tempered mixtures: 1-exp vs 2-exp", fontsize=12, y=1.02)
     # Tighten top margin a touch so the label sits closer to the axes
     fig.subplots_adjust(top=0.965)
 
     # Let Matplotlib compute final axes positions
     # Give tight_layout a little room for the suptitle; do NOT squeeze top.
-    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.98))
-    fig.canvas.draw()
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.985))
+    fig.canvas.draw()          # finalize axes positions before placing the label 
 
     # === Panel label "(c)" OUTSIDE the left panel (RSOS-style) ===
     bboxA = axA.get_position()               # axes bbox in figure coords
-    x_lab = max(0.002, bboxA.x0 - 0.030)     # a hair to the left of axA
+    x_lab = max(0.002, bboxA.x0 - 0.032)     # a hair to the left of axA
     y_lab = min(0.998, bboxA.y1 + 0.020)     # a hair above axA
-        fig.text(
+    fig.text(
         x_lab, y_lab, "(c)",
         transform=fig.transFigure,
         ha="left", va="top",
         fontsize=10, fontstyle="italic", fontweight="bold",  # ≥9 and bold
-        color="black", clip_on=False, zorder=1000
+        color="blue", clip_on=False, zorder=1000
     )
 
     # Save with a small pad so the label isn’t clipped
