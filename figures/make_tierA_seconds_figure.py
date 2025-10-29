@@ -354,8 +354,8 @@ def main():
         fig_a.savefig(fn, bbox_inches="tight", pad_inches=0.02,
                       dpi=200 if ext == "png" else None)
 
-    fig_a.tight_layout()
-    add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.012, ypad=0.008)
+    #fig_a.tight_layout()
+    #add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.012, ypad=0.008)
 
     # (optional) a bit more pixel resolution helps thin bands show up
     for ext in ("pdf", "png"):
@@ -462,8 +462,8 @@ def main():
                       bbox_inches="tight", pad_inches=0.02,
                       dpi=200 if ext == "png" else None) 
   
-    fig_b.tight_layout()
-    add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.012, ypad=0.008)
+    #fig_b.tight_layout()
+    #add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.012, ypad=0.008)
   
     for ext in ("pdf", "png"):
         fig_b.savefig(os.path.join(args.outdir, f"TierA_gate_saturation.{ext}"),
