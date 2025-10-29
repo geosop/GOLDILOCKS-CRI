@@ -37,22 +37,23 @@ try:
 except Exception:
     HAVE_YAML = False
 
-def add_panel_label_outside(fig, ax, letter, *, xpad=0.012, ypad=0.008, size=10):
+def add_panel_label_outside(fig, ax, letter, *, xpad=0.010, ypad=0.014,
+                            fontsize=9, fontweight='bold'):
     """
-    Place '(letter)' just outside the top-left of the given axes, without
-    changing the figure's top padding (safe for multi-line titles).
+    Place '({letter})' just outside the top-left of *ax* in figure coords.
+    Safe with multi-line titles; call AFTER tight_layout().
     """
-    fig.canvas.draw()                # finalize positions after tight_layout
-    bbox = ax.get_position()         # axes bbox in figure coords
-    x_lab = max(0.004, bbox.x0 - xpad)   # slightly left of axes
-    y_lab = min(0.996, bbox.y1 + ypad)   # slightly above axes
+    fig.canvas.draw()  # ensure positions are final
+    bbox = ax.get_position()  # axes bbox in figure coords
+    x_lab = max(0.002, bbox.x0 - xpad)   # a touch left of axes
+    y_lab = min(0.998, bbox.y1 + ypad)   # a touch above axes
 
-    fig.text(
-        x_lab, y_lab, f'({letter})',
-        transform=fig.transFigure, ha='left', va='top',
-        fontsize=size, fontstyle='italic', fontweight='bold',
-        color='black', clip_on=False, zorder=1000
-    )
+    fig.text(x_lab, y_lab, rf'$(\mathit{{{letter}}})$',
+             transform=fig.transFigure, ha='left', va='top',
+             fontsize=fontsize, fontweight=fontweight,
+             color='black', clip_on=False, zorder=1000)
+
+
 
 # -----------------------------
 # Defaults (can be overridden)
@@ -348,15 +349,15 @@ def main():
 
 
     fig_a.tight_layout()
-    add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.012, ypad=0.008, size=10)
-    for ext in ("pdf", "png"):
-        fn = os.path.join(args.outdir, f"TierA_decay_loglinear.{ext}")
-        fig_a.savefig(fn, bbox_inches="tight", pad_inches=0.02,
-                      dpi=200 if ext == "png" else None)
+    #add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.012, ypad=0.008, size=10)
+    #for ext in ("pdf", "png"):
+    #    fn = os.path.join(args.outdir, f"TierA_decay_loglinear.{ext}")
+    #    fig_a.savefig(fn, bbox_inches="tight", pad_inches=0.02,
+    #                  dpi=200 if ext == "png" else None)
 
     #fig_a.tight_layout()
     #add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.012, ypad=0.008)
-
+    add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.010, ypad=0.014, fontsize=9)
     # (optional) a bit more pixel resolution helps thin bands show up
     for ext in ("pdf", "png"):
         fn = os.path.join(args.outdir, f"TierA_decay_loglinear.{ext}")
@@ -456,15 +457,16 @@ def main():
         )
 
     fig_b.tight_layout()
-    add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.012, ypad=0.008, size=10)
-    for ext in ("pdf", "png"):
-        fig_b.savefig(os.path.join(args.outdir, f"TierA_gate_saturation.{ext}"),
-                      bbox_inches="tight", pad_inches=0.02,
-                      dpi=200 if ext == "png" else None) 
+    #add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.012, ypad=0.008, size=10)
+    #for ext in ("pdf", "png"):
+    #    fig_b.savefig(os.path.join(args.outdir, f"TierA_gate_saturation.{ext}"),
+    #                  bbox_inches="tight", pad_inches=0.02,
+    #                  dpi=200 if ext == "png" else None) 
   
     #fig_b.tight_layout()
     #add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.012, ypad=0.008)
-  
+    add_panel_label_outside(fig_b, ax_b, 'b', xpad=0.010, ypad=0.014, fontsize=9)
+    
     for ext in ("pdf", "png"):
         fig_b.savefig(os.path.join(args.outdir, f"TierA_gate_saturation.{ext}"),
                       bbox_inches="tight", pad_inches=0.02,
