@@ -134,7 +134,7 @@ def main():
     LABEL_X, LABEL_Y = 0.008, 0.975   # ↓ was 0.006, 0.994
     fig.text(LABEL_X, LABEL_Y, r'$(\mathit{a})$',
              transform=fig.transFigure, ha='left', va='top',
-             fontsize=9, color='black', clip_on=False, zorder=10)
+             fontsize=9, color='blue', clip_on=False, zorder=10)
 
     ax.fill_between(
         band['delta_ms'], band['lnA_low'], band['lnA_high'],
