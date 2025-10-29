@@ -298,6 +298,12 @@ def main():
     axC.set_xlim(-0.5, len(labels) - 0.5)
     axC.grid(axis="y", alpha=0.3)
 
+    # >>> Add axis names + units note
+    axC.set_xlabel("Parameter", fontsize=10, labelpad=2)
+    axC.set_ylabel("Estimate (ms for τ; unitless for η)", fontsize=10, labelpad=4)
+    axC.ticklabel_format(style="plain", axis="y", useOffset=False)
+
+ 
     # Summary box (light brown background), moved lower
     axC.text(
         0.02, 0.72,  # lower than the top-left so it doesn't hide a legend
