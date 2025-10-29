@@ -51,7 +51,7 @@ def add_panel_label_outside(fig, ax, letter, *, xpad=0.010, ypad=0.014,
     fig.text(x_lab, y_lab, rf'$(\mathit{{{letter}}})$',
              transform=fig.transFigure, ha='left', va='top',
              fontsize=fontsize, fontweight=fontweight,
-             color='black', clip_on=False, zorder=1000)
+             color='blue', clip_on=False, zorder=1000)
 
 
 
