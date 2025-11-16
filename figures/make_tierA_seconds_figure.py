@@ -319,7 +319,7 @@ def main():
         ax_a.plot(tau_fit, y_line, color='tab:orange', lw=2.0, zorder=2.1, label='OLS fit')
 
         title = (
-            rf"log-linear fit (OLS); metrics: "
+            rf"LOG-lINEAR FIT (OLS); metrics: "
             rf"slope = {slope:.3f} (HC3 CI {ci_low:.3f}, {ci_high:.3f}); "
             rf"$\widehat{{\tau}}_{{\mathrm{{fut}}}}$ = {tau_fut_hat:.3f} s"
         )
