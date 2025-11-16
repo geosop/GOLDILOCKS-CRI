@@ -355,7 +355,7 @@ def main():
     fig_a.tight_layout()
 
     #add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.012, ypad=0.008)
-    add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.085, ypad=0.035, fontsize=9)
+    add_panel_label_outside(fig_a, ax_a, 'a', xpad=0.090, ypad=0.035, fontsize=9)
     # (optional) a bit more pixel resolution helps thin bands show up
     for ext in ("pdf", "png"):
         fn = os.path.join(args.outdir, f"TierA_decay_loglinear.{ext}")
