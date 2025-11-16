@@ -332,7 +332,7 @@ def main():
     else:
         # Two-line fallback when not enough τ are gate-on
         title = r"log-linear fit" + "\n" + r"(insufficient gate-on $\tau$)"
-    t_a = ax_a.set_title(title, fontsize=7, pad=4)        # smaller font, less gap above axes
+    t_a = ax_a.set_title(title, fontsize=8, pad=4)        # smaller font, less gap above axes
     t_a.set_linespacing(0.9)                              # minimal spacing between the two lines
     #ax_a.set_title(title, pad=8)
     ax_a.set_xlabel(r"$\tau_f$ (s)")
