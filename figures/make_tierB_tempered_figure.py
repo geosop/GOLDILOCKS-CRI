@@ -241,7 +241,7 @@ def main():
     axB.plot(t_mod_ms[m_mod], curv["log_surv_2exp"].to_numpy()[m_mod], lw=2, label="2-exp fit")
 
     axB.set_xlabel("time (ms)")
-    axB.set_ylabel("log survival")
+    axB.set_ylabel("log survival S(t)")
     axB.set_xlim(0, tau_slow_ms)
     axB.legend(fontsize=9, frameon=False, loc="lower left")
 
