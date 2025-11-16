@@ -401,9 +401,9 @@ def main():
     # Horizontal saturation line
     ax_b.axhline(params["sat_level"], color="0.3", ls="--", lw=1.0, zorder=0)
 
-    ax_b.set_title(r"Gate saturation: normalized $G$ across arousal quantiles")
+    ax_b.set_title(r"Gate saturation: normalised $G$ across arousal quantiles")
     ax_b.set_xlabel(r"$\tau_f$ (s)")
-    ax_b.set_ylabel(r"Gate $G$ (normalized)")
+    ax_b.set_ylabel(r"Gate $G$ (normalised)")
     ax_b.set_ylim(-0.02, 1.02)
     ax_b.margins(y=0.02)
     ax_b.grid(True, alpha=0.3)
