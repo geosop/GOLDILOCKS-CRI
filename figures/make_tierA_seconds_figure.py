@@ -318,13 +318,17 @@ def main():
         # 4) OLS line between band and points
         ax_a.plot(tau_fit, y_line, color='tab:orange', lw=2.0, zorder=2.1, label='OLS fit')
 
-
-        # Two-line title: headline + metrics
         title = (
-            r"log-linear fit (OLS) with 95% HC3 confidence band" + "\n" +
+            rf"log-linear fit (OLS); metrics: "
             rf"slope = {slope:.3f} (HC3 CI {ci_low:.3f}, {ci_high:.3f}); "
             rf"$\widehat{{\tau}}_{{\mathrm{{fut}}}}$ = {tau_fut_hat:.3f} s"
         )
+        # Two-line title: headline + metrics
+        #title = (
+        #    r"log-linear fit (OLS) with 95% HC3 confidence band" + "\n" +
+        #    rf"slope = {slope:.3f} (HC3 CI {ci_low:.3f}, {ci_high:.3f}); "
+        #    rf"$\widehat{{\tau}}_{{\mathrm{{fut}}}}$ = {tau_fut_hat:.3f} s"
+        #)
     else:
         # Two-line fallback when not enough τ are gate-on
         title = r"log-linear fit" + "\n" + r"(insufficient gate-on $\tau$)"
