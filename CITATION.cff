@@ -1,0 +1,61 @@
+cff-version: 1.2.0
+message: "If you use this repository in academic work, please cite it using the metadata below."
+title: "Conscious Retroactive Intervention (CRI): code and simulation pipelines"
+abstract: >
+  Code, simulations, and figure-generation scripts accompanying the
+  Conscious Retroactive Intervention (CRI) hypothesis: a testable, time-symmetric open quantum systems framework
+  for predictive coding, including logistic Goldilocks
+  gating, future-weighted dissipators, and synthetic EEG pipelines for Tier-A
+  and Tier-B signatures.
+type: software
+version: "v1.0.3-pre"
+date-released: 2025-11-17
+license: "MIT"
+
+authors:
+  - family-names: "Sopasakis"
+    given-names: "George"
+    affiliation: "Research and Development Department, Ximantis AB, Onsala, Sweden"
+    email: "geosops@gmail.com"
+  - family-names: "Sopasakis"
+    given-names: "Alexandros"
+    affiliation: "Centre for Mathematical Sciences, Lund University, Sweden"
+    email: "alexandros.sopasakis@math.lth.se"
+
+repository-code: "https://github.com/geosop/CRI-HYPOTHESIS"
+
+# doi: "10.5281/zenodo.xxxxxxx"
+# preferred-citation:
+#   type: article
+#   title: "Conscious Retroactive Intervention: a Testable, Time-Symmetric Open Quantum Systems Framework for Predictive Coding."
+#   authors:
+#     - family-names: "Sopasakis"
+#       given-names: "George"
+#     - family-names: "Sopasakis"
+#       given-names: "Alexandros"
+#   year: 2025
+#   journal: "In preparation"
+#   notes: "Perspective / hypothesis manuscript"
+
+
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.16032069"
+    description: "Version v1.0.0-pre (12 July 2025)"
+  - type: doi
+    value: "10.5281/zenodo.16032090"
+    description: "Version v1.0.1-pre (12 July 2025)"
+
+keywords:
+  - "open quantum systems (OQS)" 
+  - "Gorini–Kossakowski–Sudarshan–Lindblad (GKSL) master equation" 
+  - "predictive coding" 
+  - "electroencephalography (EEG)" 
+  - "retrocausality" 
+  - "time-symmetric dynamics" 
+  - "non-Markovian dynamics" 
+  - "drift–diffusion model (DDM)" 
+  - "memory-kernel master equations" 
+  - "Nakajima–Zwanzig" 
+  - "time-convolutionless (TCL)" 
+  - "no-signalling-in-time (NSIT)" 
