@@ -38,7 +38,7 @@
 \node[kern, fill=teal!8, draw=teal!60!black] (mem)
   {\textsc{Memory damping}\\[-1mm]\scriptsize [kernel integral]};
 \node[kern, fill=blue!8, draw=blue!60!black, right=of mem, xshift=10mm] (sens)
-  {\textsc{Sensory noise}\\[-1mm]\scriptsize [note]};
+  {\textsc{Sensory noise}\\[-1mm]\scriptsize [Markovian]};
 
 % Future as circle with thick outer green ring
 \node[futcircle, right=of sens, xshift=10mm] (fut)
@@ -57,7 +57,7 @@
   node[pos=0.45, below=7pt, xshift=8pt, text=purple!70!black, font=\scriptsize]
   {\textsc{Gated weight}};
 
-\node[title, above=9mm of gate] {Kernel interactions};
+\node[title, above=9mm of gate] {CRI Kernel Interactions and Reduced Surrogate};
 
 % Right insets
 \node[draw=black, line width=0.4pt, rounded corners=1mm, fill=yellow!5, inner sep=2pt, right=6mm of fut] (inset1) {
@@ -101,9 +101,9 @@
 \node[chan, fill=gray!7, draw=black!70, below=6mm of title2] (collapse)
   {\textsc{Effective weight}};
 \node[kern, fill=magenta!10, draw=magenta!60!black, right=of collapse, xshift=6mm] (Lb)
-  {\textsc{Effective jump}\\[-0.5mm]\scriptsize [single jump text]};
+  {\textsc{Effective jump}\\[-0.5mm]\scriptsize [single jump]};
 \node[kern, fill=blue!10, draw=blue!60!black, right=of Lb, xshift=6mm] (fwd)
-  {\textsc{Forward control}\\[-0.5mm]\scriptsize [control text]};
+  {\textsc{Forward control}\\[-0.5mm]\scriptsize [control (time-local)]};
 
 \begin{scope}[on background layer]
   \draw[arr, preaction={draw=white, line width=3pt}]
