@@ -197,7 +197,7 @@ python decay/wls_tobit_robustness.py
 python logistic_gate/fit_logistic.py
 python logistic_gate/simulate_logistic.py
 ```
-### These scripts
+### These scripts:
 - **Reproduce the Tier-A gate-on decay curves** and estimates of \(\tau_{\mathrm{fut}}\).
 - Generate **Goldilocks logistic gating signatures** that the manuscript proposes as falsifiable predictions (seconds-scale Tier-A horizon, “just-right” regime, etc.).
 
