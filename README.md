@@ -316,10 +316,12 @@ If you use this repository in academic work, please cite:
 > GitHub: https://github.com/geosop/CRI-HYPOTHESIS
 
 
-## License
+## Licensing
 
-MIT License. See `LICENSE` for details.
-
+- **Code:** MIT license (see `LICENSE`).
+- **Synthetic datasets:** CC BY 4.0 (see `DATA_LICENSE`). This applies to
+  tabular data files (e.g. `.csv`, `.tsv`, `.txt`) and similar dataset
+  formats throughout the repository, unless explicitly stated otherwise.
 
 ## Disclaimer
 
