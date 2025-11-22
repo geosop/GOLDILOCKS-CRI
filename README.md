@@ -307,13 +307,26 @@ Conscious Retroactive Intervention Project, 2025
 
 - For questions regarding possible collaborations, technical or reproducibility issues, please use the repository’s GitHub Issues page.
 
-
 ## How to cite
 
-If you use this repository in academic work, please cite:
+If you use this repository in academic work, please cite **both** the software
+release and the associated CRI manuscript where appropriate.
 
-> Sopasakis, G., & Sopasakis, A. (2025). *Conscious Retroactive Intervention (CRI): a Testable, Time-Symmetric Open Quantum Systems Framework for Predictive Coding.* Perspective / hypothesis manuscript, in preparation. 
-> GitHub: https://github.com/geosop/CRI-HYPOTHESIS
+**Software (code and simulation pipelines)**  
+Use the metadata in `CITATION.cff`. In brief:
+
+> Sopasakis, G., & Sopasakis, A. (2025).  
+> *Conscious Retroactive Intervention (CRI): code and simulation pipelines.*  
+> Software release v1.0.4-pre.  
+> GitHub: https://github.com/geosop/CRI-HYPOTHESIS  
+> [Zenodo DOI: to be added]
+
+**Manuscript (theoretical Perspective / hypothesis)**  
+
+> Sopasakis, G., & Sopasakis, A. (2025).  
+> *Conscious Retroactive Intervention (CRI): a Testable, Time-Symmetric Open Quantum Systems Framework for Predictive Coding.*  
+> Perspective / hypothesis manuscript, in preparation.  
+> GitHub reproducibility companion: https://github.com/geosop/CRI-HYPOTHESIS
 
 
 ## Licensing
