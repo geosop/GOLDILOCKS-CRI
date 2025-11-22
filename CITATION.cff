@@ -6,10 +6,13 @@ abstract: >
   Conscious Retroactive Intervention (CRI) hypothesis: a testable, time-symmetric open quantum systems framework
   for predictive coding, including logistic Goldilocks
   gating, future-weighted dissipators, and synthetic EEG pipelines for Tier-A
-  and Tier-B signatures.
+  and Tier-B signatures. All synthetic datasets (e.g. tabular .csv
+  files) in this repository are released under the Creative Commons Attribution
+  4.0 International License (CC BY 4.0; see DATA_LICENSE), while all source
+  code is released under the MIT license (see LICENSE).
 type: software
-version: "v1.0.3-pre"
-date-released: 2025-11-17
+version: "v1.0.4-pre"
+date-released: 2025-11-22
 license: "MIT"
 
 authors:
