@@ -1,0 +1,14 @@
+Synthetic data licensing
+
+Unless otherwise noted in a specific file or subdirectory, all synthetic
+dataset files in this repository – including, but not limited to, files
+with extensions such as .csv, .tsv, .txt or similar tabular-data formats,
+wherever they appear in the directory tree – are licensed under the
+Creative Commons Attribution 4.0 International License (CC BY 4.0).
+
+These terms apply only to dataset files. All source code files
+(e.g. .py, .sh, .R, .m) are licensed under the MIT license as
+described in LICENSE. Any third-party material included in the
+repository retains its original license, as indicated where applicable.
+
+Full CC BY 4.0 text: https://creativecommons.org/licenses/by/4.0/
