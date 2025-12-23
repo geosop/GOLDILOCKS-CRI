@@ -1,29 +1,43 @@
 logistic:
   seed: 52
 
-  # Domain for the gate input
+  # Domain for the gate input (dimensionless)
   q_min: 0.0
   q_max: 1.0
   n_points: 400
 
-  # Two-condition settings (arousal levels for illustration in Box 2b)
+  # Two-condition settings for Box 2b
   use_two_conditions: true
-  a1: 0.30
-  a2: 0.70
 
-  # Ground-truth parameters for synthetic data
+  # IMPORTANT: avoid a1/a2 symmetric about a0 if you want a visible dip/bump shift.
+  a1: 0.50
+  a2: 0.80
+
+  # Gate steepness (shared)
+  alpha: 0.05
+
+  # Threshold model p0(a)
+  # - explicit: use p0_a1, p0_a2 below
+  # - gaussian: compute p0(a) = p_base ± delta_p0 * exp(-(a-a0)^2/(2*sigma_a^2))
+  p0_mode: gaussian          # "explicit" | "gaussian"
+  p0_shape: dip              # "dip" | "bump"
+  p_base: 0.55               # baseline threshold
+  a0: 0.50                   # centre of dip/bump
+  sigma_a: 0.18              # width (in arousal units)
+  delta_p0: 0.05             # amplitude (peak magnitude)
+
+  # Explicit p0 values (used only if p0_mode=explicit)
   p0_a1: 0.50
-  p0_a2: 0.55        # show a detectable shift Δp0 ≈ +0.05
-  alpha: 0.05        # shared true alpha
+  p0_a2: 0.55
 
   # Fitting initial guesses
   p0_guess_a1: 0.50
   p0_guess_a2: 0.52
   alpha_guess: 0.05
-  share_alpha: true  # fit shared alpha across conditions
+  share_alpha: true
 
   # Sampling for trials
-  q_sampling: "uniform"   # "uniform" | "random"
+  q_sampling: "random"       # "uniform" | "random"
   n_trials_a1: 60
   n_trials_a2: 60
 
@@ -34,14 +48,13 @@ logistic:
   n_bootstrap: 2000
   ci_percent: 95
 
-    # Kernel-smoother diagnostic (Option-2, SI only)
+  # Kernel-smoother diagnostic (SI only)
   kernel_enabled: true
-  kernel_bandwidth: 0.08     # Gaussian kernel bandwidth in q units
-  kernel_bootstrap: 1000     # can be <= n_bootstrap for speed
+  kernel_bandwidth: 0.08
+  kernel_bootstrap: 1000
 
-  # Calibration diagnostic (Option-2, SI only)
-  calib_bins: 10             # number of equal-width predicted-prob bins
+  # Calibration diagnostic (SI only)
+  calib_bins: 10
 
   # Figure export
   figure_dpi: 1200
-
