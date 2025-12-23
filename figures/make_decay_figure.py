@@ -123,7 +123,9 @@ def main():
 
     tau_s, lo_s, hi_s = _load_tau_fut_seconds(out_dir_data)
     tau_ms = tau_s * 1e3
-    slope_per_s = -1.0 / tau_s                         # s^-1
+
+    # slope in s^{-1}
+    slope_per_s = -1.0 / tau_s
 
     A_min, lnA_min = resolve_detection_threshold(p, band)
 
@@ -164,19 +166,32 @@ def main():
     x_lo = float(p.get("delta_start", 0.0)) * 1000.0 - 0.5
     x_hi = float(p.get("delta_end",   0.02)) * 1000.0 + 0.5
     ax.set_xlim(x_lo, x_hi)
-
-
+    
     # Slope/τ annotation (with units)
     ymin, ymax = ax.get_ylim()
     y_ann = ymin + clamp(args.ann_yfrac, 0.0, 1.0) * (ymax - ymin)
     trans = mtransforms.blended_transform_factory(ax.transAxes, ax.transData)
-    ax.text(args.ann_x, y_ann,
-            r"$\mathrm{slope} = -1/\tau_{\mathrm{fut}}\ (\mathrm{s}^{-1})$"
-            + "\n" + rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\ \mathrm{{ms}}$"
-            + ("" if (not np.isfinite(lo_s) or not np.isfinite(hi_s)) else
-               rf"\ \,[{lo_s*1e3:.1f},{hi_s*1e3:.1f}]\,\mathrm{{ms}}$"),
-            transform=trans, fontsize=6.0, va="top",
-            bbox=dict(boxstyle="round,pad=0.25", facecolor="white", alpha=0.80, edgecolor="none"))
+
+    # build annotation text safely (each line is its own mathtext chunk)
+    ci_line = ""
+    if np.isfinite(lo_s) and np.isfinite(hi_s):
+        lo_ms = lo_s * 1e3
+        hi_ms = hi_s * 1e3
+        ci_line = "\n" + rf"$[{lo_ms:.1f},{hi_ms:.1f}]\,\mathrm{{ms}}$"
+
+    ann_text = (
+        rf"$\mathrm{{slope}}={slope_per_s:.1f}\,\mathrm{{s}}^{{-1}}$"
+        + "\n"
+        + rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\,\mathrm{{ms}}$"
+        + ci_line
+    )
+
+    ax.text(
+        float(args.ann_x), y_ann, ann_text,
+        transform=trans, fontsize=6.0, va="top",
+        bbox=dict(boxstyle="round,pad=0.25", facecolor="white", alpha=0.80, edgecolor="none"),
+        clip_on=True
+    )
 
     # ---------- Inset with units ----------
     inset_w_pct = f"{float(os.getenv('CRI_INSET_W', 0.22))*100:.0f}%"
@@ -194,7 +209,7 @@ def main():
     ax_ins.tick_params(labelsize=6)
     ax_ins.yaxis.set_major_locator(MaxNLocator(nbins=4, prune='upper'))
     ax_ins.xaxis.set_major_locator(MaxNLocator(nbins=6))
-    ax_ins.set_xlim(-0.5, 20.5)
+    ax_ins.set_xlim(x_lo, x_hi)
 
     # Legend AFTER all artists are created
     leg = ax.legend(loc='upper right', bbox_to_anchor=(0.98, 0.98),
