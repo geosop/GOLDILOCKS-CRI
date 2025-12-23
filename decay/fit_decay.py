@@ -151,10 +151,14 @@ def _tobit_fit(x, y, c):
 
 # ----------------------- bootstrap wrappers -----------------------
 def _bootstrap_ci(vals, ci_percent=95.0):
+    vals = np.asarray(vals, float)
+    vals = vals[np.isfinite(vals)]
+    if vals.size == 0:
+        return float("nan"), float("nan")
     a = (100.0 - ci_percent)/2.0
     return float(np.percentile(vals, a)), float(np.percentile(vals, 100.0 - a))
 
-def _fit_all(df, A_min, n_boot=2000, ci_percent=95.0, seed=52):
+def _fit_all(df, A_min, n_boot=2000, ci_percent=95.0, seed=52, n_points=200):
     x  = df['delta'].values.astype(float)      # seconds
     y  = df['lnA_pre'].values.astype(float)
     se = df['se_lnA'].values.astype(float) if 'se_lnA' in df.columns else None
@@ -165,8 +169,12 @@ def _fit_all(df, A_min, n_boot=2000, ci_percent=95.0, seed=52):
     b0_wls,  b1_wls  = _wls_fit(x, y, se)
     b0_tob,  b1_tob  = _tobit_fit(x, y, c)
 
-    def to_tau(b1): 
-        return np.inf if b1 >= 0 else -1.0 / b1
+    def to_tau(b1):
+        # Robust: ignore non-identifiable / non-decaying bootstrap resamples
+        if (not np.isfinite(b1)) or (b1 >= 0):
+            return np.nan
+        return -1.0 / b1
+
 
     tau_ols  = to_tau(b1_ols)
     tau_wls  = to_tau(b1_wls)
@@ -175,7 +183,7 @@ def _fit_all(df, A_min, n_boot=2000, ci_percent=95.0, seed=52):
     # bootstrap
     rng = np.random.default_rng(seed)
     B = int(n_boot)
-    xs = np.linspace(x.min(), x.max(), 200)
+    xs = np.linspace(x.min(), x.max(), int(n_points))
     lines = []
     tau_ols_B, tau_wls_B, tau_tob_B = [], [], []
 
@@ -250,7 +258,8 @@ def main():
         df, A_min=params['A_min'],
         n_boot=params['n_bootstrap'],
         ci_percent=params['ci_percent'],
-        seed=params['seed']
+        seed=params['seed'],
+        n_points=params['n_points']
     )
 
     res.to_csv(os.path.join(outd, 'fit_decay_results.csv'), index=False)
