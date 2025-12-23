@@ -7,7 +7,7 @@ Generates:
   - decay/output/decay_curve.csv       (delta_cont, lnA_pre_cont) <-- used to draw the line
   - decay/output/decay_data_raw.csv    (delta, lnA_pre_raw)      <-- replicates (SI)
 """
-import os, yaml
+import os, yaml, math
 import numpy as np
 import pandas as pd
 
@@ -20,7 +20,8 @@ def _load_params():
     return {
         'seed':        int(p.get('seed', 52)),
         'A0':          float(p.get('A0', 1.0)),
-        'tau_f':       float(p.get('tau_f', 0.02)),
+        # accept tau_fut as an alias to match manuscript notation
+        'tau_f':       float(p.get('tau_fut', p.get('tau_f', 0.02))),
         'noise_log':   float(p.get('noise_log', 0.10)),
         'delta_start': float(p.get('delta_start', 0.0)),
         'delta_end':   float(p.get('delta_end', 0.02)),
@@ -28,6 +29,9 @@ def _load_params():
         'n_cont':      int(p.get('n_cont', 300)),
         # NEW: number of replicate trials per discrete delay (for SEs)
         'n_rep':       int(p.get('n_rep', 40)),
+        # Optional: apply detection floor in log-domain (default off to preserve Box-2a numbers)
+        'apply_censoring': bool(p.get('apply_censoring', False)),
+        'A_min':       float(p.get('A_min', p.get('epsilon_detection', 0.01))),
     }
 
 def main():
@@ -49,8 +53,11 @@ def main():
 
     # Simulate replicates in log-domain (homoscedastic log-noise)
     raw_rows = []
+    c = float(np.log(p["A_min"])) if p.get("apply_censoring", False) else None  
     for d, mu in zip(deltas, lnA_true):
         y = mu + rng.normal(0.0, p['noise_log'], size=p['n_rep'])
+        if c is not None:
+            y = np.maximum(y, c)      
         for v in y:
             raw_rows.append({'delta': float(d), 'lnA_pre_raw': float(v)})
     pd.DataFrame(raw_rows).to_csv(os.path.join(outd, 'decay_data_raw.csv'), index=False)
