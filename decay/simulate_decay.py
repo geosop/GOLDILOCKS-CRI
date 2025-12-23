@@ -34,6 +34,13 @@ def _load_params():
         'A_min':       float(p.get('A_min', p.get('epsilon_detection', 0.01))),
     }
 
+env_seed = os.getenv("CRI_SEED", None)
+if env_seed is not None:
+    try:
+        p["seed"] = int(env_seed)
+    except Exception:
+        pass
+
 def main():
     p = _load_params() 
     print("simulate_decay.py VERSION: CRI v0.3-SIM",
