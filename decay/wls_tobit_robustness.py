@@ -59,6 +59,13 @@ def _load_params():
         "ci_percent":  float(p.get("ci_percent", 95.0)),
     }
 
+env_seed = os.getenv("CRI_SEED", None)
+if env_seed is not None:
+    try:
+        p["seed"] = int(env_seed)
+    except Exception:
+        pass
+
 
 def _simulate_once(seed, A0, tau_f, noise_log, delta_start, delta_end, delta_step, n_rep):
     """Local simulator matching Box-2a settings; used only for Monte-Carlo repeats."""
