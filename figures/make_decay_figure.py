@@ -94,10 +94,12 @@ def parse_args():
     p.add_argument("--inset-h", type=float, default=float(os.getenv("CRI_INSET_H", 0.20)))
     p.add_argument("--ann-x",   type=float, default=float(os.getenv("CRI_ANN_X", 0.66)))
     p.add_argument("--ann-yfrac", type=float, default=float(os.getenv("CRI_ANN_YFRAC", 0.55)))
-    # NEW: panel label controls
-    p.add_argument("--panel-label", default=os.getenv("CRI_PANEL_LABEL", "(a)")),
-    p.add_argument("--panel-x", type=float, default=float(os.getenv("CRI_PANEL_X", 0.015))),
-    p.add_argument("--panel-y", type=float, default=float(os.getenv("CRI_PANEL_Y", 0.985))),
+    # Panel label controls (figure coordinates)
+    p.add_argument("--panel-label", default=os.getenv("CRI_PANEL_LABEL", "(a)"))
+    p.add_argument("--panel-x", type=float, default=float(os.getenv("CRI_PANEL_X", 0.008)))
+    p.add_argument("--panel-y", type=float, default=float(os.getenv("CRI_PANEL_Y", 0.975)))
+    # Output naming (avoid hard-coded “refined” filenames)
+    p.add_argument("--out-stem", default=os.getenv("CRI_BOX2A_STEM", "Box2a_decay"))
     return p.parse_args()
 
 def main():
@@ -129,12 +131,11 @@ def main():
     # tighten the top margin so the axes sit closer to the top edge
     fig.subplots_adjust(top=0.965)   # 0.97–0.99 for even less whitespace
     
-    # Panel label outside axes, top-left of the full figure (RSOS style: roman brackets + italic letter)
-    # panel label outside the axes, but a touch lower than before
-    LABEL_X, LABEL_Y = 0.008, 0.975   # ↓ was 0.006, 0.994
-    fig.text(LABEL_X, LABEL_Y, r'$(\mathit{a})$',
+    # Panel label outside axes (black, controlled by args/env)
+    fig.text(float(args.panel_x), float(args.panel_y),
+             rf"$({args.panel_label.strip('()')})$" if args.panel_label.startswith("(") else args.panel_label,
              transform=fig.transFigure, ha='left', va='top',
-             fontsize=9, color='blue', clip_on=False, zorder=10)
+             fontsize=9, color='black', clip_on=False, zorder=10)
 
     ax.fill_between(
         band['delta_ms'], band['lnA_low'], band['lnA_high'],
@@ -153,25 +154,17 @@ def main():
         ax.scatter(pts['delta_ms'], pts['lnA_pre'], s=16, color='#FF8C1A', zorder=3, label="Sampled delays")
 
     ax.axhline(lnA_min, linestyle='--', color='#D62728', linewidth=1.0,
-               label=r"Detection bound: $\ln A_{\min}$")
+               label=rf"Detection bound: $\ln A_{{\min}}={lnA_min:.2f}$")
 
     # Units on axes
     ax.set_xlabel(r"$\tau_f$ (ms)")
     ax.set_ylabel(r"$\ln A_{\mathrm{pre}}(\tau_f)$ (–)")
-    ax.set_xlim(-0.5, 20.5)
+    
+    # Use YAML-driven x-limits (pad by 0.5 ms for aesthetics)
+    x_lo = float(p.get("delta_start", 0.0)) * 1000.0 - 0.5
+    x_hi = float(p.get("delta_end",   0.02)) * 1000.0 + 0.5
+    ax.set_xlim(x_lo, x_hi)
 
-    leg = ax.legend(loc='upper right', bbox_to_anchor=(0.98, 0.98),
-                    frameon=True, fancybox=True)
-    f = leg.get_frame(); f.set_facecolor('#f2f2f2'); f.set_edgecolor('0.80'); f.set_alpha(1.0); f.set_linewidth(0.6)
-
-    # CRI reference line (slope −1/τ_fut in s^-1, plotted vs ms)
-    i0 = int(np.argmin(band['delta_ms'].values))
-    x0_ms = float(band['delta_ms'].values[i0]); x0_s = x0_ms / 1000.0
-    y0 = float(band['lnA_central'].values[i0])
-    x_line_ms = np.linspace(0.0, 20.0, 200); x_line_s = x_line_ms / 1000.0
-    y_cri = y0 + slope_per_s * (x_line_s - x0_s)
-    ax.plot(x_line_ms, y_cri, ls='--', lw=1.1, color='0.25',
-            label=rf"CRI slope −1/τ$_{{\mathrm{{fut}}}}$ ({tau_ms:.1f} ms)")
 
     # Slope/τ annotation (with units)
     ymin, ymax = ax.get_ylim()
@@ -179,7 +172,9 @@ def main():
     trans = mtransforms.blended_transform_factory(ax.transAxes, ax.transData)
     ax.text(args.ann_x, y_ann,
             r"$\mathrm{slope} = -1/\tau_{\mathrm{fut}}\ (\mathrm{s}^{-1})$"
-            + "\n" + rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\ \mathrm{{ms}}$",
+            + "\n" + rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\ \mathrm{{ms}}$"
+            + ("" if (not np.isfinite(lo_s) or not np.isfinite(hi_s)) else
+               rf"\ \,[{lo_s*1e3:.1f},{hi_s*1e3:.1f}]\,\mathrm{{ms}}$"),
             transform=trans, fontsize=6.0, va="top",
             bbox=dict(boxstyle="round,pad=0.25", facecolor="white", alpha=0.80, edgecolor="none"))
 
@@ -201,9 +196,15 @@ def main():
     ax_ins.xaxis.set_major_locator(MaxNLocator(nbins=6))
     ax_ins.set_xlim(-0.5, 20.5)
 
+    # Legend AFTER all artists are created
+    leg = ax.legend(loc='upper right', bbox_to_anchor=(0.98, 0.98),
+                    frameon=True, fancybox=True)
+    fr = leg.get_frame()
+    fr.set_facecolor('#f2f2f2'); fr.set_edgecolor('0.80'); fr.set_alpha(1.0); fr.set_linewidth(0.6)
+
     os.makedirs(out_folder, exist_ok=True)
-    out_pdf = os.path.join(out_folder, 'Box2a_decay_refined.pdf')
-    out_png = os.path.join(out_folder, 'Box2a_decay_refined.png')
+    out_pdf = os.path.join(out_folder, f"{args.out_stem}.pdf")
+    out_png = os.path.join(out_folder, f"{args.out_stem}.png")
 
     # keep a small pad so tight cropping doesn’t touch the outside label
     fig.savefig(out_pdf, bbox_inches='tight', pad_inches=0.01)
