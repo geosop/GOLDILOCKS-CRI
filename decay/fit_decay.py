@@ -57,6 +57,13 @@ def _load_params():
         'n_points':    n_points,
     }
 
+env_seed = os.getenv("CRI_SEED", None)
+if env_seed is not None:
+    try:
+        p["seed"] = int(env_seed)
+    except Exception:
+        pass
+
 
 def _load_data():
     here = os.path.dirname(__file__)
