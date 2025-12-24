@@ -84,6 +84,7 @@ jobs:
           CRI_SKIP_TEX: "0"         # 0 = DO NOT skip TikZ (enable TeX build)
           CRI_SKIP_DIAG: "0"        # run diagnostics
           CRI_FIGS_ONLY: "0"        # run full pipeline, not just figures
+          CRI_LOGISTIC_CONFIG: "logistic_gate/params_box2b.yml"
         run: |
           chmod +x run_all.sh
           ./run_all.sh
