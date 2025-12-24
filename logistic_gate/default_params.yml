@@ -44,9 +44,10 @@ logistic:
 
   # Kernel-smoother diagnostics (SI)
   kernel_enabled: true
-  kernel_bandwidth: 0.08
+  kernel_bandwidth: 0.10
   kernel_bootstrap: 1000
-
+  kernel_neff_min: 25        # Mask kernel curves where n_eff < 25
+  
   # Calibration diagnostics (SI)
   calib_bins: 10
 
