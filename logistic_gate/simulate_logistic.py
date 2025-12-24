@@ -14,12 +14,13 @@ Supports two modes for p0(a):
 
 CRITICAL REPRODUCIBILITY / ANTI-CONTRADICTION:
   - Writes logistic_gate/output/run_manifest.json containing:
-      * a canonical YAML hash (run_hash)
-      * the exact parameters used (and derived p0(a1), p0(a2))
+      * run_hash (SHA-256 of canonicalised "logistic" dict)
+      * config_sha256 (SHA-256 of the YAML file bytes)
+      * config_path_rel (relative to repo root where possible)
+      * exact parameters used + derived p0_used(a1), p0_used(a2)
       * timestamp + optional git commit
-  - Stamps run_hash into every row of the CSV outputs.
-  - Downstream scripts should recompute the YAML hash and refuse to run
-    if run_hash does not match the manifest and/or CSV.
+  - Stamps run_hash into every row of CSV outputs.
+  - Downstream scripts should verify run_hash matches manifest and CSVs.
 
 Writes:
   - logistic_gate/output/logistic_curve.csv
@@ -40,6 +41,7 @@ import yaml
 import hashlib
 import datetime as _dt
 import subprocess
+import platform
 from typing import Any, Dict, Tuple, Optional
 
 import numpy as np
@@ -68,10 +70,7 @@ def _utc_now_iso() -> str:
 
 
 def _safe_git_commit(repo_root: str) -> Optional[str]:
-    """
-    Return the current git commit hash if available; otherwise None.
-    Never raises.
-    """
+    """Return current git commit hash if available; otherwise None. Never raises."""
     try:
         out = subprocess.check_output(
             ["git", "rev-parse", "HEAD"],
@@ -84,12 +83,33 @@ def _safe_git_commit(repo_root: str) -> Optional[str]:
         return None
 
 
+def _safe_git_dirty(repo_root: str) -> Optional[bool]:
+    """Return True if repo has uncommitted changes, False if clean, None if unknown."""
+    try:
+        out = subprocess.check_output(
+            ["git", "status", "--porcelain"],
+            cwd=repo_root,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+        return bool(out.strip())
+    except Exception:
+        return None
+
+
+def _sha256_of_file(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def _canonical_json_bytes(obj: Any) -> bytes:
     """
     Deterministic JSON encoding for hashing.
     - sort keys
     - remove whitespace
-    - ensure stable float representation via Python's json (sufficient here)
     """
     s = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return s.encode("utf-8")
@@ -101,6 +121,19 @@ def _compute_run_hash(logistic_params: Dict[str, Any]) -> str:
     """
     payload = _canonical_json_bytes(logistic_params)
     return hashlib.sha256(payload).hexdigest()
+
+
+def _relpath_safe(path: str, root: str) -> str:
+    """Best-effort relative path; falls back to basename if not a subpath."""
+    try:
+        root = os.path.abspath(root)
+        path = os.path.abspath(path)
+        common = os.path.commonpath([root, path])
+        if common == root:
+            return os.path.relpath(path, root)
+    except Exception:
+        pass
+    return os.path.basename(path)
 
 
 def _write_run_manifest(
@@ -118,10 +151,23 @@ def _write_run_manifest(
         "schema_version": 1,
         "run_hash": run_hash,
         "timestamp_utc": _utc_now_iso(),
-        "config_path": config_path,
+        "script": os.path.relpath(__file__, repo_root) if os.path.exists(repo_root) else os.path.basename(__file__),
+        "repo_root": os.path.abspath(repo_root),
+        "config_path": os.path.abspath(config_path),
+        "config_path_rel": _relpath_safe(config_path, repo_root),
+        "config_sha256": _sha256_of_file(config_path),
         "git_commit": _safe_git_commit(repo_root),
+        "git_dirty": _safe_git_dirty(repo_root),
+        "python": {
+            "version": platform.python_version(),
+            "platform": platform.platform(),
+        },
+        "packages": {
+            "numpy": getattr(np, "__version__", None),
+            "pandas": getattr(pd, "__version__", None),
+        },
         "logistic_params": logistic_params,  # full dict for auditability
-        "derived": derived,                  # includes p0(a1), p0(a2), etc.
+        "derived": derived,                  # includes p0_used(a1), p0_used(a2), etc.
         "outputs": {
             "logistic_curve_csv": os.path.join(out_dir, "logistic_curve.csv"),
             "logistic_trials_csv": os.path.join(out_dir, "logistic_trials.csv"),
@@ -135,13 +181,12 @@ def _write_run_manifest(
 
 
 # ----------------------------- config ----------------------------------------
-
 def _resolve_params_path(config_path: str | None = None) -> str:
     """Resolve YAML path with sensible precedence.
 
     Precedence:
       1) explicit argument `config_path`
-      2) env var CRI_LOGISTIC_CONFIG (or CRI_BOX2B_CONFIG for backward naming)
+      2) env var CRI_LOGISTIC_CONFIG (or CRI_BOX2B_CONFIG)
       3) logistic_gate/params_box2b.yml if present
       4) logistic_gate/default_params.yml (fallback)
 
@@ -174,14 +219,14 @@ def _resolve_params_path(config_path: str | None = None) -> str:
 
 def load_params(config_path: str | None = None) -> Tuple[dict, str]:
     """Load YAML and return (params_dict, abs_path)."""
-    path = _resolve_params_path(config_path)        
-    
+    path = _resolve_params_path(config_path)
+
     with open(path, "r", encoding="utf-8") as f:
         obj = yaml.safe_load(f)
 
     p = obj["logistic"] if isinstance(obj, dict) and "logistic" in obj else obj
     if not isinstance(p, dict):
-        raise ValueError("default_params.yml did not parse into a dict under key 'logistic'.")
+        raise ValueError("YAML did not parse into a dict under key 'logistic' (or as a top-level dict).")
 
     # Back-compat: older keys
     if "q_min" not in p and "p_min" in p:
@@ -201,9 +246,11 @@ def load_params(config_path: str | None = None) -> Tuple[dict, str]:
     # Gate params
     p.setdefault("alpha", 0.05)
 
-    # p0 model defaults (kept back-compatible)
+    # p0 model defaults
     p.setdefault("p0_mode", "explicit")    # "explicit" | "gaussian"
     p.setdefault("p0_shape", "dip")        # "dip" | "bump" (gaussian mode only)
+
+    # Gaussian parameters
     p.setdefault("p_base", 0.55)
     p.setdefault("a0", 0.50)
     p.setdefault("sigma_a", 0.18)
@@ -222,6 +269,71 @@ def load_params(config_path: str | None = None) -> Tuple[dict, str]:
     return p, path
 
 
+def _validate_params(p: Dict[str, Any]) -> None:
+    """Fail fast on parameter inconsistencies that would enable figure/data contradictions."""
+    # Numeric domain checks
+    q_min = float(p["q_min"]); q_max = float(p["q_max"])
+    if not (0.0 <= q_min < q_max <= 1.0):
+        raise ValueError(f"Require 0 <= q_min < q_max <= 1. Got q_min={q_min}, q_max={q_max}.")
+
+    n_points = int(p["n_points"])
+    if n_points < 2:
+        raise ValueError(f"Require n_points >= 2. Got {n_points}.")
+
+    alpha = float(p["alpha"])
+    if not (alpha > 0.0):
+        raise ValueError(f"Require alpha > 0. Got {alpha}.")
+
+    use_two = bool(p.get("use_two_conditions", True))
+    a1 = float(p["a1"])
+    if not (0.0 <= a1 <= 1.0):
+        raise ValueError(f"Require a1 in [0,1]. Got {a1}.")
+    if use_two:
+        a2 = float(p["a2"])
+        if not (0.0 <= a2 <= 1.0):
+            raise ValueError(f"Require a2 in [0,1]. Got {a2}.")
+        if np.isclose(a1, a2):
+            raise ValueError(f"Two-condition mode requires a1 != a2. Got a1≈a2≈{a1}.")
+
+    n1 = int(p["n_trials_a1"]); n2 = int(p["n_trials_a2"])
+    if n1 <= 0 or (use_two and n2 <= 0):
+        raise ValueError(f"Trial counts must be positive. Got n_trials_a1={n1}, n_trials_a2={n2}.")
+
+    qs = str(p.get("q_sampling", "random")).lower()
+    if qs not in {"uniform", "random"}:
+        raise ValueError(f"q_sampling must be 'uniform' or 'random'. Got {qs}.")
+
+    mode = str(p.get("p0_mode", "explicit")).lower()
+    if mode not in {"explicit", "gaussian"}:
+        raise ValueError(f"p0_mode must be 'explicit' or 'gaussian'. Got {mode}.")
+
+    if mode == "explicit":
+        p0_a1 = float(p["p0_a1"])
+        if not (0.0 <= p0_a1 <= 1.0):
+            raise ValueError(f"Explicit mode requires p0_a1 in [0,1]. Got {p0_a1}.")
+        if use_two:
+            p0_a2 = float(p["p0_a2"])
+            if not (0.0 <= p0_a2 <= 1.0):
+                raise ValueError(f"Explicit mode requires p0_a2 in [0,1]. Got {p0_a2}.")
+    else:
+        # gaussian mode
+        p_base = float(p["p_base"])
+        a0 = float(p["a0"])
+        sigma_a = float(p["sigma_a"])
+        delta = float(p["delta_p0"])
+        shape = str(p.get("p0_shape", "dip")).lower()
+        if shape not in {"dip", "bump"}:
+            raise ValueError(f"p0_shape must be 'dip' or 'bump'. Got {shape}.")
+        if not (0.0 <= p_base <= 1.0):
+            raise ValueError(f"Gaussian mode requires p_base in [0,1]. Got {p_base}.")
+        if not (0.0 <= a0 <= 1.0):
+            raise ValueError(f"Gaussian mode requires a0 in [0,1]. Got {a0}.")
+        if not (sigma_a > 0.0):
+            raise ValueError(f"Gaussian mode requires sigma_a > 0. Got {sigma_a}.")
+        if not (0.0 <= delta <= 1.0):
+            raise ValueError(f"Gaussian mode requires delta_p0 in [0,1]. Got {delta}.")
+
+
 def parse_args():
     ap = argparse.ArgumentParser(description="Simulate Box-2(b) logistic gate trials.")
     ap.add_argument(
@@ -234,10 +346,7 @@ def parse_args():
 
 # ---------------------------- model ------------------------------------------
 def logistic(q: np.ndarray, p0: float, alpha: float) -> np.ndarray:
-    """
-    Stable logistic gate:
-        G(q) = expit((q - p0)/alpha)
-    """
+    """Stable logistic gate: G(q) = expit((q - p0)/alpha)."""
     alpha = max(float(alpha), 1e-12)
     return expit((np.asarray(q, dtype=float) - float(p0)) / alpha)
 
@@ -276,9 +385,7 @@ def p0_of_a(a: float, p: dict) -> float:
 def _sample_q(rng: np.random.Generator, n: int, q_min: float, q_max: float, mode: str) -> np.ndarray:
     mode = str(mode).lower()
     if mode == "uniform":
-        # evenly spaced values (deterministic given n)
         return np.linspace(q_min, q_max, int(n))
-    # default: random uniform samples
     return rng.uniform(q_min, q_max, size=int(n))
 
 
@@ -286,7 +393,10 @@ def _sample_q(rng: np.random.Generator, n: int, q_min: float, q_max: float, mode
 def main() -> None:
     load_state()
     args = parse_args()
-    p, params_path = load_params(args.config)        
+
+    p, params_path = load_params(args.config)
+    _validate_params(p)
+
     rng = np.random.default_rng(int(p["seed"]))
     save_state()
 
@@ -300,35 +410,50 @@ def main() -> None:
     q_min = float(p["q_min"])
     q_max = float(p["q_max"])
     n_points = int(p["n_points"])
-    derived: Dict[str, Any] = {
-        "q_min": q_min,
-        "q_max": q_max,
-        "n_points": n_points,
-    }
-
     q_grid = np.linspace(q_min, q_max, n_points)
 
     a1 = float(p["a1"])
     a2 = float(p["a2"])
     alpha = float(p["alpha"])
 
-    # Compute p0 per condition (supports gaussian mode)
+    # Compute p0 per condition
     p0_1 = p0_of_a(a1, p)
     use_two = bool(p.get("use_two_conditions", True))
     p0_2 = p0_of_a(a2, p) if use_two else None
 
-    derived.update({
+    # Consistency guard: if explicit mode, p0_used must equal the explicit YAML values
+    mode = str(p.get("p0_mode", "explicit")).lower()
+    tol = float(p.get("consistency_tol", 1e-9))
+    if mode == "explicit":
+        if abs(p0_1 - float(p["p0_a1"])) > tol:
+            raise RuntimeError("Explicit mode inconsistency: p0_used(a1) != p0_a1 from YAML.")
+        if use_two and p0_2 is not None and abs(float(p0_2) - float(p["p0_a2"])) > tol:
+            raise RuntimeError("Explicit mode inconsistency: p0_used(a2) != p0_a2 from YAML.")
+    else:
+        # If user left explicit p0_a1/p0_a2 in YAML while in gaussian mode, warn if they conflict.
+        # This prevents silent “parameterisation drift” accusations later.
+        if "p0_a1" in p and abs(p0_1 - float(p["p0_a1"])) > 1e-6:
+            print("[WARN] gaussian mode: p0_a1 in YAML differs from derived p0_used(a1). "
+                  "Consider removing p0_a1/p0_a2 keys or switching to explicit mode for Box2b.")
+        if use_two and p0_2 is not None and "p0_a2" in p and abs(float(p0_2) - float(p["p0_a2"])) > 1e-6:
+            print("[WARN] gaussian mode: p0_a2 in YAML differs from derived p0_used(a2). "
+                  "Consider removing p0_a1/p0_a2 keys or switching to explicit mode for Box2b.")
+
+    derived: Dict[str, Any] = {
+        "q_min": q_min,
+        "q_max": q_max,
+        "n_points": n_points,
         "a1": a1,
-        "a2": a2 if use_two else None,
+        "a2": (a2 if use_two else None),
         "alpha": alpha,
         "p0_mode": str(p.get("p0_mode", "explicit")),
-        "p0_shape": str(p.get("p0_shape", "")),
+        "p0_shape": (str(p.get("p0_shape", "")) if str(p.get("p0_mode", "explicit")).lower() == "gaussian" else None),
         "p0_used_a1": float(p0_1),
         "p0_used_a2": (float(p0_2) if p0_2 is not None else None),
-    })
+    }
 
-    # Write run manifest FIRST (so downstream can check even if later steps fail)
-    repo_root = ROOT  # logistic_gate/.. is the repository root in your layout
+    # Write run manifest FIRST
+    repo_root = ROOT  # logistic_gate/.. is repository root in your layout
     manifest_path = _write_run_manifest(
         out_dir=out_dir,
         run_hash=run_hash,
@@ -340,7 +465,11 @@ def main() -> None:
 
     # Ground-truth curves
     G_a1 = logistic(q_grid, p0_1, alpha)
-    curve_data = {"q": q_grid, "G_a1": G_a1, "run_hash": np.full_like(q_grid, run_hash, dtype=object)}
+    curve_data = {
+        "q": q_grid,
+        "G_a1": G_a1,
+        "run_hash": np.full(q_grid.shape[0], run_hash, dtype=object),
+    }
     if use_two:
         G_a2 = logistic(q_grid, float(p0_2), alpha)
         curve_data["G_a2"] = G_a2
@@ -371,7 +500,7 @@ def main() -> None:
             "a": np.full_like(q_a2, a2, dtype=float),
             "p0": np.full_like(q_a2, float(p0_2), dtype=float),
             "run_hash": np.full(q_a2.shape[0], run_hash, dtype=object),
-        }))
+    }))
 
     # Write dense noiseless curves
     pd.DataFrame(curve_data).to_csv(os.path.join(out_dir, "logistic_curve.csv"), index=False)
@@ -391,6 +520,7 @@ def main() -> None:
         sums, _ = np.histogram(df_a["q"].values, bins=edges, weights=df_a["y"].astype(float).values)
         with np.errstate(invalid="ignore", divide="ignore"):
             means = np.where(counts > 0, sums / counts, np.nan)
+
         for c, m, n in zip(bin_centers, means, counts):
             if int(n) > 0:
                 rows.append({
