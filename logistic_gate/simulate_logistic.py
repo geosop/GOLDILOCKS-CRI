@@ -35,6 +35,7 @@ from __future__ import annotations
 import os
 import sys
 import json
+import argparse
 import yaml
 import hashlib
 import datetime as _dt
@@ -134,14 +135,47 @@ def _write_run_manifest(
 
 
 # ----------------------------- config ----------------------------------------
-def load_params() -> Tuple[dict, str]:
-    """
-    Returns:
-      p: dict  (the logistic params dict)
-      path: str (the YAML path used)
+
+def _resolve_params_path(config_path: str | None = None) -> str:
+    """Resolve YAML path with sensible precedence.
+
+    Precedence:
+      1) explicit argument `config_path`
+      2) env var CRI_LOGISTIC_CONFIG (or CRI_BOX2B_CONFIG for backward naming)
+      3) logistic_gate/params_box2b.yml if present
+      4) logistic_gate/default_params.yml (fallback)
+
+    Relative paths are resolved against repo root first, then logistic_gate/.
     """
     here = os.path.dirname(__file__)
-    path = os.path.join(here, "default_params.yml")
+    repo = os.path.abspath(os.path.join(here, ".."))
+
+    if config_path is None:
+        config_path = os.getenv("CRI_LOGISTIC_CONFIG") or os.getenv("CRI_BOX2B_CONFIG")
+
+    if config_path is None:
+        cand_box2b = os.path.join(here, "params_box2b.yml")
+        cand_default = os.path.join(here, "default_params.yml")
+        config_path = cand_box2b if os.path.exists(cand_box2b) else cand_default
+
+    if not os.path.isabs(config_path):
+        cand_repo = os.path.join(repo, config_path)
+        cand_here = os.path.join(here, config_path)
+        if os.path.exists(cand_repo):
+            config_path = cand_repo
+        elif os.path.exists(cand_here):
+            config_path = cand_here
+
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Cannot find logistic YAML config: {config_path}")
+
+    return os.path.abspath(config_path)
+
+
+def load_params(config_path: str | None = None) -> Tuple[dict, str]:
+    """Load YAML and return (params_dict, abs_path)."""
+    path = _resolve_params_path(config_path)        
+    
     with open(path, "r", encoding="utf-8") as f:
         obj = yaml.safe_load(f)
 
@@ -186,6 +220,16 @@ def load_params() -> Tuple[dict, str]:
     p.setdefault("n_trials_a2", 60)
 
     return p, path
+
+
+def parse_args():
+    ap = argparse.ArgumentParser(description="Simulate Box-2(b) logistic gate trials.")
+    ap.add_argument(
+        "--config",
+        default=os.getenv("CRI_LOGISTIC_CONFIG") or os.getenv("CRI_BOX2B_CONFIG"),
+        help="Path to YAML config (default: env CRI_LOGISTIC_CONFIG; else params_box2b.yml if present; else default_params.yml).",
+    )
+    return ap.parse_args()
 
 
 # ---------------------------- model ------------------------------------------
@@ -241,7 +285,8 @@ def _sample_q(rng: np.random.Generator, n: int, q_min: float, q_max: float, mode
 # ---------------------------- main -------------------------------------------
 def main() -> None:
     load_state()
-    p, params_path = load_params()
+    args = parse_args()
+    p, params_path = load_params(args.config)        
     rng = np.random.default_rng(int(p["seed"]))
     save_state()
 
