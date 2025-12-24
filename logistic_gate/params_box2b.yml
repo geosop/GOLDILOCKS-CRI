@@ -17,7 +17,7 @@ logistic:
 
   # Threshold model p0(a)
   # Choose exactly one: "explicit" OR "gaussian"
-  p0_mode: "explicit"     # "explicit" | "gaussian"
+  p0_mode: "gaussian"     # "explicit" | "gaussian"
   p0_shape: "dip"         # "dip" | "bump"
 
   # Gaussian model parameters (dimensionless)
