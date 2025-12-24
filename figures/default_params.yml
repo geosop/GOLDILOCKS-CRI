@@ -30,7 +30,7 @@ TierA:
   C_true: 0.03
   x_noise: 0.995
   sigma0: 0.05
-  seed: 42
+  seed: 52
 
   # gate-saturation (panel b)
   arousal_quantiles: [0.2, 0.5, 0.8]
