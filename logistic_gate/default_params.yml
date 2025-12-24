@@ -1,0 +1,54 @@
+logistic:
+  config_name: "Box2b_locked"
+  seed: 52
+
+  # Domain for the gate input (dimensionless)
+  q_min: 0.0
+  q_max: 1.0
+  n_points: 400
+
+  # Two-condition illustration (dimensionless arousal)
+  use_two_conditions: true
+  a1: 0.30
+  a2: 0.70
+
+  # Gate steepness (dimensionless)
+  alpha: 0.05
+
+  # Threshold model p0(a)
+  # For Box 2(b) as written in the manuscript: fixed thresholds per condition.
+  p0_mode: "explicit"     # "explicit" | "gaussian"
+  p0_shape: "dip"         # only used if p0_mode=gaussian
+
+  # Explicit p0 values (dimensionless)
+  p0_a1: 0.50
+  p0_a2: 0.55
+
+  # Gaussian model parameters (kept for SI experiments; ignored in explicit mode)
+  p_base: 0.55
+  a0: 0.50
+  sigma_a: 0.18
+  delta_p0: 0.05
+
+  # Trial sampling for synthetic trials
+  q_sampling: "uniform"   # "uniform" | "random"
+  n_trials_a1: 300
+  n_trials_a2: 300
+
+  # Binning for visualization markers only
+  n_bins: 15
+
+  # Bootstrap settings for CI bands
+  n_bootstrap: 2000
+  ci_percent: 95
+
+  # Kernel-smoother diagnostics (SI)
+  kernel_enabled: true
+  kernel_bandwidth: 0.08
+  kernel_bootstrap: 1000
+
+  # Calibration diagnostics (SI)
+  calib_bins: 10
+
+  # Export
+  figure_dpi: 1200
