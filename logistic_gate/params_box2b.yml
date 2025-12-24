@@ -9,15 +9,15 @@ logistic:
 
   # Arousal conditions (dimensionless)
   use_two_conditions: true
-  a1: 0.50
-  a2: 0.80
+  a1: 0.30
+  a2: 0.70
 
   # Gate steepness (shared; dimensionless)
   alpha: 0.05
 
   # Threshold model p0(a)
   # Choose exactly one: "explicit" OR "gaussian"
-  p0_mode: "gaussian"     # "explicit" | "gaussian"
+  p0_mode: "explicit"     # "explicit" | "gaussian"
   p0_shape: "dip"         # "dip" | "bump"
 
   # Gaussian model parameters (dimensionless)
