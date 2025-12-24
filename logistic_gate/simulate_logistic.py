@@ -12,19 +12,35 @@ Supports two modes for p0(a):
        - uses p0(a) = p_base ± delta_p0 * exp(-(a-a0)^2/(2*sigma_a^2))
        - choose p0_shape: "dip" or "bump"
 
+CRITICAL REPRODUCIBILITY / ANTI-CONTRADICTION:
+  - Writes logistic_gate/output/run_manifest.json containing:
+      * a canonical YAML hash (run_hash)
+      * the exact parameters used (and derived p0(a1), p0(a2))
+      * timestamp + optional git commit
+  - Stamps run_hash into every row of the CSV outputs.
+  - Downstream scripts should recompute the YAML hash and refuse to run
+    if run_hash does not match the manifest and/or CSV.
+
 Writes:
   - logistic_gate/output/logistic_curve.csv
-      q, G_a1, [G_a2]
+      q, G_a1, [G_a2], run_hash
   - logistic_gate/output/logistic_trials.csv
-      q, y, a, p0   (trial-wise Bernoulli outcomes + the p0 used)
+      q, y, a, p0, run_hash   (trial-wise Bernoulli outcomes + the p0 used)
   - logistic_gate/output/logistic_bins.csv
-      q_bin_center, rate_mean, n_bin, a  (bin means for visualization ONLY)
+      q_bin_center, rate_mean, n_bin, a, run_hash  (bin means for visualization ONLY)
+  - logistic_gate/output/run_manifest.json
 """
 from __future__ import annotations
 
 import os
 import sys
+import json
 import yaml
+import hashlib
+import datetime as _dt
+import subprocess
+from typing import Any, Dict, Tuple, Optional
+
 import numpy as np
 import pandas as pd
 from scipy.special import expit  # stable logistic
@@ -45,8 +61,85 @@ except Exception:
         pass
 
 
+# ----------------------------- manifest utilities ----------------------------
+def _utc_now_iso() -> str:
+    return _dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+
+def _safe_git_commit(repo_root: str) -> Optional[str]:
+    """
+    Return the current git commit hash if available; otherwise None.
+    Never raises.
+    """
+    try:
+        out = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo_root,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        return out if out else None
+    except Exception:
+        return None
+
+
+def _canonical_json_bytes(obj: Any) -> bytes:
+    """
+    Deterministic JSON encoding for hashing.
+    - sort keys
+    - remove whitespace
+    - ensure stable float representation via Python's json (sufficient here)
+    """
+    s = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return s.encode("utf-8")
+
+
+def _compute_run_hash(logistic_params: Dict[str, Any]) -> str:
+    """
+    Hash only the *logistic* section to avoid unrelated YAML edits changing Box2b outputs.
+    """
+    payload = _canonical_json_bytes(logistic_params)
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _write_run_manifest(
+    out_dir: str,
+    run_hash: str,
+    config_path: str,
+    logistic_params: Dict[str, Any],
+    derived: Dict[str, Any],
+    repo_root: str,
+) -> str:
+    """
+    Writes output/run_manifest.json and returns its path.
+    """
+    manifest = {
+        "schema_version": 1,
+        "run_hash": run_hash,
+        "timestamp_utc": _utc_now_iso(),
+        "config_path": config_path,
+        "git_commit": _safe_git_commit(repo_root),
+        "logistic_params": logistic_params,  # full dict for auditability
+        "derived": derived,                  # includes p0(a1), p0(a2), etc.
+        "outputs": {
+            "logistic_curve_csv": os.path.join(out_dir, "logistic_curve.csv"),
+            "logistic_trials_csv": os.path.join(out_dir, "logistic_trials.csv"),
+            "logistic_bins_csv": os.path.join(out_dir, "logistic_bins.csv"),
+        },
+    }
+    path = os.path.join(out_dir, "run_manifest.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, sort_keys=True, ensure_ascii=False)
+    return path
+
+
 # ----------------------------- config ----------------------------------------
-def load_params() -> dict:
+def load_params() -> Tuple[dict, str]:
+    """
+    Returns:
+      p: dict  (the logistic params dict)
+      path: str (the YAML path used)
+    """
     here = os.path.dirname(__file__)
     path = os.path.join(here, "default_params.yml")
     with open(path, "r", encoding="utf-8") as f:
@@ -92,10 +185,10 @@ def load_params() -> dict:
     p.setdefault("n_trials_a1", 60)
     p.setdefault("n_trials_a2", 60)
 
-    return p
+    return p, path
 
 
-# ---------------------------- model -----------------------------------------
+# ---------------------------- model ------------------------------------------
 def logistic(q: np.ndarray, p0: float, alpha: float) -> np.ndarray:
     """
     Stable logistic gate:
@@ -145,20 +238,29 @@ def _sample_q(rng: np.random.Generator, n: int, q_min: float, q_max: float, mode
     return rng.uniform(q_min, q_max, size=int(n))
 
 
-# ---------------------------- main ------------------------------------------
+# ---------------------------- main -------------------------------------------
 def main() -> None:
     load_state()
-    p = load_params()
+    p, params_path = load_params()
     rng = np.random.default_rng(int(p["seed"]))
     save_state()
 
     out_dir = os.path.join(os.path.dirname(__file__), "output")
     os.makedirs(out_dir, exist_ok=True)
 
+    # --- compute run hash from the logistic params dict (canonicalised) ---
+    run_hash = _compute_run_hash(p)
+
     # Grid for dense (noiseless) curves
     q_min = float(p["q_min"])
     q_max = float(p["q_max"])
     n_points = int(p["n_points"])
+    derived: Dict[str, Any] = {
+        "q_min": q_min,
+        "q_max": q_max,
+        "n_points": n_points,
+    }
+
     q_grid = np.linspace(q_min, q_max, n_points)
 
     a1 = float(p["a1"])
@@ -167,12 +269,34 @@ def main() -> None:
 
     # Compute p0 per condition (supports gaussian mode)
     p0_1 = p0_of_a(a1, p)
-    p0_2 = p0_of_a(a2, p) if bool(p.get("use_two_conditions", True)) else None
+    use_two = bool(p.get("use_two_conditions", True))
+    p0_2 = p0_of_a(a2, p) if use_two else None
+
+    derived.update({
+        "a1": a1,
+        "a2": a2 if use_two else None,
+        "alpha": alpha,
+        "p0_mode": str(p.get("p0_mode", "explicit")),
+        "p0_shape": str(p.get("p0_shape", "")),
+        "p0_used_a1": float(p0_1),
+        "p0_used_a2": (float(p0_2) if p0_2 is not None else None),
+    })
+
+    # Write run manifest FIRST (so downstream can check even if later steps fail)
+    repo_root = ROOT  # logistic_gate/.. is the repository root in your layout
+    manifest_path = _write_run_manifest(
+        out_dir=out_dir,
+        run_hash=run_hash,
+        config_path=params_path,
+        logistic_params=p,
+        derived=derived,
+        repo_root=repo_root,
+    )
 
     # Ground-truth curves
     G_a1 = logistic(q_grid, p0_1, alpha)
-    curve_data = {"q": q_grid, "G_a1": G_a1}
-    if bool(p.get("use_two_conditions", True)):
+    curve_data = {"q": q_grid, "G_a1": G_a1, "run_hash": np.full_like(q_grid, run_hash, dtype=object)}
+    if use_two:
         G_a2 = logistic(q_grid, float(p0_2), alpha)
         curve_data["G_a2"] = G_a2
 
@@ -188,10 +312,11 @@ def main() -> None:
         "y": y_a1.astype(int),
         "a": np.full_like(q_a1, a1, dtype=float),
         "p0": np.full_like(q_a1, p0_1, dtype=float),
+        "run_hash": np.full(q_a1.shape[0], run_hash, dtype=object),
     }))
 
     # Optional condition a2
-    if bool(p.get("use_two_conditions", True)):
+    if use_two:
         q_a2 = _sample_q(rng, int(p["n_trials_a2"]), q_min, q_max, p.get("q_sampling", "random"))
         prob_a2 = logistic(q_a2, float(p0_2), alpha)
         y_a2 = rng.binomial(1, prob_a2)
@@ -200,6 +325,7 @@ def main() -> None:
             "y": y_a2.astype(int),
             "a": np.full_like(q_a2, a2, dtype=float),
             "p0": np.full_like(q_a2, float(p0_2), dtype=float),
+            "run_hash": np.full(q_a2.shape[0], run_hash, dtype=object),
         }))
 
     # Write dense noiseless curves
@@ -227,14 +353,16 @@ def main() -> None:
                     "rate_mean": float(m),
                     "n_bin": int(n),
                     "a": float(a_val),
+                    "run_hash": run_hash,
                 })
 
     pd.DataFrame(rows).to_csv(os.path.join(out_dir, "logistic_bins.csv"), index=False)
 
     print(f"Saved logistic_curve.csv, logistic_trials.csv, logistic_bins.csv → {out_dir}")
+    print(f"Wrote run manifest → {manifest_path}")
+    print(f"run_hash={run_hash}")
     print(f"p0(a1={a1:.3f})={p0_1:.4f}" + ("" if p0_2 is None else f" | p0(a2={a2:.3f})={float(p0_2):.4f}"))
 
 
 if __name__ == "__main__":
     main()
-
