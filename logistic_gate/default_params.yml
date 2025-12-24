@@ -32,8 +32,8 @@ logistic:
 
   # Trial sampling for synthetic trials
   q_sampling: "uniform"   # "uniform" | "random"
-  n_trials_a1: 300
-  n_trials_a2: 300
+  n_trials_a1: 600
+  n_trials_a2: 600
 
   # Binning for visualization markers only
   n_bins: 15
