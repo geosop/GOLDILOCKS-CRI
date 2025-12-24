@@ -424,6 +424,8 @@ def main():
         strict_csv_hash=(not args.allow_missing_run_hash),
     )
 
+    neff_min = float(params.get("kernel_neff_min", 25))
+  
     two = ("G_central_a2" in band.columns)
 
     # Clean calibration rows (also ensures needed cols exist)
@@ -468,10 +470,23 @@ def main():
     if kern is not None:
         req_k1 = {"q", "Gk_central_a1", "Gk_low_a1", "Gk_high_a1"}
         if req_k1.issubset(kern.columns):
-            ax1.plot(kern["q"], kern["Gk_central_a1"], color=col_kern, lw=1.0, alpha=0.9,
-                     label="Kernel smoother (a1)")
-            ax1.fill_between(kern["q"], kern["Gk_low_a1"], kern["Gk_high_a1"],
-                             color=col_kern, alpha=0.12, edgecolor="none")
+            neff_min = float(params.get("kernel_neff_min", 25))
+            if "n_eff_a1" in kern.columns:
+                m = (kern["n_eff_a1"].values.astype(float) >= neff_min)
+            else:
+                m = np.ones(len(kern), dtype=bool)
+
+            qk = kern["q"].values
+            y  = kern["Gk_central_a1"].values.astype(float).copy()
+            lo = kern["Gk_low_a1"].values.astype(float).copy()
+            hi = kern["Gk_high_a1"].values.astype(float).copy()
+            y[~m]  = np.nan
+            lo[~m] = np.nan
+            hi[~m] = np.nan
+
+            ax1.plot(qk, y, color=col_kern, lw=1.0, alpha=0.9,
+                     label=f"Kernel smoother (a1; $n_\\mathrm{{eff}}\\geq{int(neff_min)}$)")
+            ax1.fill_between(qk, lo, hi, color=col_kern, alpha=0.12, edgecolor="none")
 
     if two:
         req_a2 = {"G_low_a2", "G_high_a2", "G_central_a2"}
@@ -486,10 +501,25 @@ def main():
         if kern is not None:
             req_k2 = {"q", "Gk_central_a2", "Gk_low_a2", "Gk_high_a2"}
             if req_k2.issubset(kern.columns):
-                ax1.plot(kern["q"], kern["Gk_central_a2"], color=col_kern, lw=1.0, alpha=0.9,
-                         linestyle="--", label="Kernel smoother (a2)")
-                ax1.fill_between(kern["q"], kern["Gk_low_a2"], kern["Gk_high_a2"],
-                                 color=col_kern, alpha=0.12, edgecolor="none")
+                neff_min = float(params.get("kernel_neff_min", 25))
+                if "n_eff_a2" in kern.columns:
+                    m = (kern["n_eff_a2"].values.astype(float) >= neff_min)
+                else:
+                    m = np.ones(len(kern), dtype=bool)
+
+                qk = kern["q"].values
+                y  = kern["Gk_central_a2"].values.astype(float).copy()
+                lo = kern["Gk_low_a2"].values.astype(float).copy()
+                hi = kern["Gk_high_a2"].values.astype(float).copy()
+                y[~m]  = np.nan
+                lo[~m] = np.nan
+                hi[~m] = np.nan
+
+                ax1.plot(qk, y, color=col_kern, lw=1.0, alpha=0.9,
+                         linestyle="--",
+                         label=f"Kernel smoother (a2; $n_\\mathrm{{eff}}\\geq{int(neff_min)}$)")
+                ax1.fill_between(qk, lo, hi, color=col_kern, alpha=0.12, edgecolor="none")             
+
 
     ax1.set_xlim(0, 1)
     ax1.set_ylim(0, 1)
