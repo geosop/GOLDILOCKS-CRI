@@ -3,73 +3,87 @@
 """
 logistic_gate/fit_logistic.py  •  CRI (Box 2b / SI-ready)
 
-Backbone: trial-wise Bernoulli logistic fits for two arousal levels with shared alpha.
-Diagnostics (SI): kernel-smoothed curves + calibration curve and metrics.
+Trial-wise Bernoulli logistic fits for one or two arousal conditions (shared alpha in two-condition mode).
+Diagnostics (SI): kernel smoother curves + calibration curves + Brier/ECE.
 
 Reads:
-  - logistic_gate/output/logistic_trials.csv   (q, y, a[, p0])
+  - logistic_gate/output/logistic_trials.csv   (q, y, a[, p0][, run_hash])
   - logistic_gate/default_params.yml
+  - logistic_gate/output/run_manifest.json    (created by simulate_logistic.py)
 
-Writes (same schema as the current pipeline):
+Writes:
   - logistic_gate/output/fit_logistic_results.csv
-      p0_hat_a1, [p0_hat_a2], alpha_hat, Delta_p0, Delta_p0_lo, Delta_p0_hi,
-      LRT_chi2, LRT_df, LRT_pval,
-      Brier_a1, Brier_a2, Brier_all, ECE_a1, ECE_a2, ECE_all
   - logistic_gate/output/logistic_band.csv
-      q, G_central_a1, G_low_a1, G_high_a1, [G_central_a2, G_low_a2, G_high_a2]
   - logistic_gate/output/logistic_derivative.csv
-      q, dGdq_a1, [dGdq_a2]
-  - logistic_gate/output/logistic_kernel.csv            (diagnostic)
-      q, Gk_central_a1, Gk_low_a1, Gk_high_a1, [Gk_central_a2, Gk_low_a2, Gk_high_a2]
-  - logistic_gate/output/logistic_calibration.csv       (diagnostic)
-      bin_left, bin_right, bin_center, n_bin, pred_mean, obs_rate, lo, hi, a
-  - logistic_gate/output/logistic_calibration_metrics.csv (diagnostic)
-      metric, a, value
+  - logistic_gate/output/logistic_kernel.csv
+  - logistic_gate/output/logistic_calibration.csv
+  - logistic_gate/output/logistic_calibration_metrics.csv
 
-Key corrections:
-  1) Proper LRT p-value via Chi-square survival function (df=1).
-  2) Deterministic a1/a2 mapping (uses YAML a1/a2 if available; else sorted unique).
-  3) Robust bootstrap loop: skips failed optimizations instead of poisoning percentiles.
-  4) Numerically stable expit and clipping to avoid log(0).
+Anti-contradiction mechanisms:
+  - Enforces run_manifest.json presence and consistency:
+      * manifest.run_hash matches CSV run_hash (if present)
+      * manifest.run_hash matches YAML-derived run_hash
+      * data arousal levels match YAML a1/a2 (within tolerance) in two-condition mode
+  - Stamps run_hash into all outputs.
 """
 from __future__ import annotations
 
 import os
 import sys
+import json
 import yaml
+import hashlib
+from typing import Any, Dict, Optional, Tuple
+
 import numpy as np
 import pandas as pd
 
 from scipy.optimize import minimize
-from scipy.special import expit  # stable logistic
-from scipy.stats import chi2     # correct LRT p-values
+from scipy.special import expit
+from scipy.stats import chi2
 
 from math import sqrt
 
-# -----------------------------------------------------------------------------
-# Bootstrapping reproducibility hooks
-# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------#
+# Reproducibility hooks (optional)
+# -----------------------------------------------------------------------------#
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 try:
     from utilities.seed_manager import load_state, save_state
 except Exception:
-    def load_state():  # noqa: D401
-        """No-op if seed_manager not available."""
+    def load_state():
         pass
 
-    def save_state():  # noqa: D401
-        """No-op if seed_manager not available."""
+    def save_state():
         pass
 
 EPS = 1e-12
 
 
-# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------#
+# Hash / manifest utilities (must match simulate_logistic.py logic)
+# -----------------------------------------------------------------------------#
+def _canonical_json_bytes(obj: Any) -> bytes:
+    s = json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return s.encode("utf-8")
+
+
+def _compute_run_hash(logistic_params: Dict[str, Any]) -> str:
+    payload = _canonical_json_bytes(logistic_params)
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _read_json(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# -----------------------------------------------------------------------------#
 # Config
-# -----------------------------------------------------------------------------
-def load_params() -> dict:
+# -----------------------------------------------------------------------------#
+def load_params() -> Tuple[dict, str]:
     here = os.path.dirname(__file__)
     path = os.path.join(here, "default_params.yml")
     with open(path, "r", encoding="utf-8") as f:
@@ -88,11 +102,11 @@ def load_params() -> dict:
     p.setdefault("n_bootstrap", 2000)
     p.setdefault("ci_percent", 95)
 
-    # Fitting initial guesses
+    # Initial guesses
     p.setdefault("p0_guess_a1", 0.50)
     p.setdefault("p0_guess_a2", 0.52)
     p.setdefault("alpha_guess", 0.05)
-    p.setdefault("share_alpha", True)  # kept for clarity; this script always uses shared alpha in two-condition mode
+    p.setdefault("share_alpha", True)
 
     # Diagnostics
     p.setdefault("kernel_enabled", True)
@@ -100,16 +114,14 @@ def load_params() -> dict:
     p.setdefault("kernel_bootstrap", min(1000, int(p["n_bootstrap"])))
     p.setdefault("calib_bins", 10)
 
-    # prefer YAML arousal levels for mapping
-    # p.setdefault("a1", 0.30)
-    # p.setdefault("a2", 0.70)
-
-    return p
+    # Arousal levels if specified
+    # (do not set defaults here; enforce if present in YAML)
+    return p, path
 
 
-# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------#
 # Model / utilities
-# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------#
 def logistic(q: np.ndarray, p0: float, alpha: float) -> np.ndarray:
     """Stable logistic: G(q) = expit((q - p0) / alpha)."""
     alpha = max(float(alpha), 1e-12)
@@ -121,7 +133,6 @@ def clamp01(x: np.ndarray) -> np.ndarray:
     return np.clip(x, EPS, 1.0 - EPS)
 
 
-# Negative log-likelihoods
 def _nll_single(theta, q, y):
     p0, alpha = theta
     if not (0.0 <= p0 <= 1.0 and alpha > 1e-8):
@@ -143,7 +154,6 @@ def _nll_shared_alpha(theta, q, y, a, a1, a2):
 
 
 def _nll_shared_p0(theta, q, y):
-    # H0: shared p0 and shared alpha
     p0, alpha = theta
     if not (0.0 <= p0 <= 1.0 and alpha > 1e-8):
         return 1e12
@@ -152,10 +162,6 @@ def _nll_shared_p0(theta, q, y):
 
 
 def _minimize_with_restarts(fun, x0, args=(), bounds=None, max_restarts=5, rng=None):
-    """
-    Robustify optimizer with small random restarts.
-    Returns best scipy.optimize.OptimizeResult found (may be unsuccessful).
-    """
     best = None
     x0 = np.asarray(x0, dtype=float)
 
@@ -166,7 +172,6 @@ def _minimize_with_restarts(fun, x0, args=(), bounds=None, max_restarts=5, rng=N
             noise = rng.normal(scale=0.02, size=len(x0)) if rng is not None else 0.02 * np.ones_like(x0)
             start = x0 + noise
 
-        # project into bounds
         if bounds is not None:
             lo = np.array([b[0] if b[0] is not None else -np.inf for b in bounds], dtype=float)
             hi = np.array([b[1] if b[1] is not None else np.inf for b in bounds], dtype=float)
@@ -177,7 +182,6 @@ def _minimize_with_restarts(fun, x0, args=(), bounds=None, max_restarts=5, rng=N
         if best is None:
             best = res
         else:
-            # Prefer successful; otherwise lowest fun
             if res.success and (not best.success or res.fun < best.fun):
                 best = res
             elif (not best.success) and res.fun < best.fun:
@@ -189,13 +193,12 @@ def _minimize_with_restarts(fun, x0, args=(), bounds=None, max_restarts=5, rng=N
     return best
 
 
-# Kernel smoother (Gaussian) for diagnostics
+# Kernel smoother for diagnostics
 def gaussian_kernel(u):
     return np.exp(-0.5 * u * u)
 
 
 def kernel_smoother(q_grid, q_obs, y_obs, h):
-    """Nadaraya–Watson estimator with Gaussian kernel (diagnostic only)."""
     h = max(float(h), 1e-6)
     q_obs = np.asarray(q_obs, dtype=float)
     y_obs = np.asarray(y_obs, dtype=float)
@@ -207,9 +210,7 @@ def kernel_smoother(q_grid, q_obs, y_obs, h):
     return preds
 
 
-# Wilson interval for a binomial proportion (clamped & ordered)
-# Brown, Cai, DasGupta (2001) Statistical Science 16(2)
-def wilson_interval(s, n, z=1.959963984540054):  # 95% ~ N(0,1)
+def wilson_interval(s, n, z=1.959963984540054):
     if n <= 0:
         return (np.nan, np.nan)
     phat = s / n
@@ -224,7 +225,6 @@ def wilson_interval(s, n, z=1.959963984540054):  # 95% ~ N(0,1)
     return (lo, hi)
 
 
-# Calibration metrics
 def brier_score(y, p):
     return float(np.mean((y - p) ** 2))
 
@@ -247,51 +247,121 @@ def ece_score(y, p, m=10):
     return float(ece)
 
 
-# -----------------------------------------------------------------------------
-# Fitting pipelines
-# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------#
+# Consistency checks
+# -----------------------------------------------------------------------------#
+def _extract_unique_arousal(df: pd.DataFrame) -> np.ndarray:
+    return np.sort(np.unique(np.round(df["a"].values.astype(float), 6)))
+
+
+def _require_manifest_and_hashes(
+    out_dir: str,
+    df_trials: pd.DataFrame,
+    params: Dict[str, Any],
+    params_path: str,
+    atol_a: float = 1e-6,
+) -> str:
+    """
+    Returns run_hash if checks pass; raises RuntimeError otherwise.
+    """
+    manifest_path = os.path.join(out_dir, "run_manifest.json")
+    if not os.path.exists(manifest_path):
+        raise RuntimeError(
+            "Missing output/run_manifest.json. "
+            "You must rerun simulate_logistic.py (new pipeline) before fitting."
+        )
+
+    manifest = _read_json(manifest_path)
+    if "run_hash" not in manifest:
+        raise RuntimeError("run_manifest.json missing 'run_hash'.")
+
+    run_hash_manifest = str(manifest["run_hash"])
+
+    # Check YAML->hash matches manifest hash
+    run_hash_yaml = _compute_run_hash(params)
+    if run_hash_yaml != run_hash_manifest:
+        raise RuntimeError(
+            "YAML/logistic dict hash does not match run_manifest.json.\n"
+            f"  YAML hash:      {run_hash_yaml}\n"
+            f"  manifest hash:  {run_hash_manifest}\n"
+            "This indicates your outputs were generated from a different YAML than the one currently on disk.\n"
+            "Fix: delete logistic_gate/output/* and rerun simulate_logistic.py with the intended default_params.yml."
+        )
+
+    # Check CSV run_hash column if present
+    if "run_hash" in df_trials.columns:
+        uniq = df_trials["run_hash"].dropna().astype(str).unique()
+        if len(uniq) == 0:
+            raise RuntimeError("logistic_trials.csv has run_hash column but it is empty.")
+        if len(uniq) != 1:
+            raise RuntimeError(
+                f"logistic_trials.csv contains multiple run_hash values: {uniq}. "
+                "This suggests mixed outputs. Delete output/ and rerun pipeline."
+            )
+        run_hash_csv = str(uniq[0])
+        if run_hash_csv != run_hash_manifest:
+            raise RuntimeError(
+                "run_hash mismatch between logistic_trials.csv and run_manifest.json.\n"
+                f"  CSV run_hash:      {run_hash_csv}\n"
+                f"  manifest run_hash: {run_hash_manifest}\n"
+                "Fix: delete logistic_gate/output/* and rerun simulate_logistic.py."
+            )
+
+    # Check that a-levels match YAML a1/a2 when use_two_conditions is on
+    use_two = bool(params.get("use_two_conditions", True))
+    a_vals = _extract_unique_arousal(df_trials)
+
+    if use_two:
+        if len(a_vals) < 2:
+            raise RuntimeError("YAML requests two conditions but data contains <2 arousal levels.")
+        if "a1" not in params or "a2" not in params:
+            raise RuntimeError(
+                "Two-condition mode requires YAML to specify a1 and a2 explicitly to avoid ambiguous mapping."
+            )
+        a1_y, a2_y = float(params["a1"]), float(params["a2"])
+        # find closest data levels
+        a1_d = float(a_vals[np.argmin(np.abs(a_vals - a1_y))])
+        a2_d = float(a_vals[np.argmin(np.abs(a_vals - a2_y))])
+        if (abs(a1_d - a1_y) > atol_a) or (abs(a2_d - a2_y) > atol_a) or np.isclose(a1_d, a2_d):
+            raise RuntimeError(
+                "Arousal levels in logistic_trials.csv do not match YAML a1/a2 within tolerance.\n"
+                f"  YAML a1,a2: {a1_y:.6f}, {a2_y:.6f}\n"
+                f"  Data levels: {a_vals}\n"
+                "Fix: delete logistic_gate/output/* and rerun simulate_logistic.py with the intended YAML."
+            )
+
+    return run_hash_manifest
+
+
 def _resolve_a1_a2(df_trials: pd.DataFrame, p: dict) -> tuple[float, float]:
-    """
-    Deterministically resolve (a1,a2):
-      - If YAML provides a1/a2 and both are present in the data (within tolerance),
-        map to those.
-      - Else, use sorted unique arousal values from data.
-    """
-    a_vals = np.unique(np.round(df_trials["a"].values.astype(float), 6))
+    a_vals = _extract_unique_arousal(df_trials)
     if len(a_vals) < 2:
         raise RuntimeError("Two-condition fit requested but only one arousal level present.")
 
-    a_sorted = np.sort(a_vals)
-
     if "a1" in p and "a2" in p:
-        target = np.array([float(p["a1"]), float(p["a2"])], dtype=float)
-        # pick closest matches in data to YAML a1/a2
-        # (robust to rounding)
-        def _closest(val):
-            return float(a_sorted[np.argmin(np.abs(a_sorted - val))])
-
-        a1 = _closest(target[0])
-        a2 = _closest(target[1])
+        a1_y, a2_y = float(p["a1"]), float(p["a2"])
+        a1 = float(a_vals[np.argmin(np.abs(a_vals - a1_y))])
+        a2 = float(a_vals[np.argmin(np.abs(a_vals - a2_y))])
         if np.isclose(a1, a2):
-            # fallback to first two unique values if YAML mapping collapses
-            a1, a2 = float(a_sorted[0]), float(a_sorted[1])
-        return float(a1), float(a2)
+            a1, a2 = float(a_vals[0]), float(a_vals[1])
+        return a1, a2
 
-    return float(a_sorted[0]), float(a_sorted[1])
+    return float(a_vals[0]), float(a_vals[1])
 
 
-def fit_two_condition(df_trials, p):
-    # Identify a1, a2
+# -----------------------------------------------------------------------------#
+# Fitting pipelines
+# -----------------------------------------------------------------------------#
+def fit_two_condition(df_trials: pd.DataFrame, p: dict):
     a1, a2 = _resolve_a1_a2(df_trials, p)
 
     q = df_trials["q"].values.astype(float)
     y = df_trials["y"].values.astype(float)
     a = df_trials["a"].values.astype(float)
 
-    theta0 = np.array(
-        [p.get("p0_guess_a1", 0.5), p.get("p0_guess_a2", 0.52), p.get("alpha_guess", 0.05)],
-        dtype=float,
-    )
+    theta0 = np.array([p.get("p0_guess_a1", 0.5),
+                       p.get("p0_guess_a2", 0.52),
+                       p.get("alpha_guess", 0.05)], dtype=float)
     bounds = [(0.0, 1.0), (0.0, 1.0), (1e-6, None)]
     rng = np.random.default_rng(int(p["seed"]))
 
@@ -307,15 +377,12 @@ def fit_two_condition(df_trials, p):
     res_H0 = _minimize_with_restarts(_nll_shared_p0, theta0_H0, args=(q, y), bounds=bounds_H0, rng=rng)
     if res_H0 is None or not np.isfinite(res_H0.fun):
         raise RuntimeError("Optimization failed for null model (H0).")
-    p0_shared, alpha_shared = res_H0.x
     ll_H0 = -float(res_H0.fun)
 
-    # LRT (df=1): p-value = P(Chi2_1 >= chi2)
     chi2_stat = max(0.0, 2.0 * (ll_H1 - ll_H0))
     df_lrt = 1
     pval = float(chi2.sf(chi2_stat, df=df_lrt))
 
-    # Bootstrap bands and Δp0 CI
     n_boot = int(p["n_bootstrap"])
     qs = np.linspace(float(p["q_min"]), float(p["q_max"]), int(p["n_points"]))
 
@@ -326,7 +393,7 @@ def fit_two_condition(df_trials, p):
 
     curves1, curves2, dp0 = [], [], []
     n_success = 0
-    max_attempts = max(n_boot, int(1.2 * n_boot))  # allow skips without shrinking too much
+    max_attempts = max(n_boot, int(1.2 * n_boot))
 
     for _ in range(max_attempts):
         if n_success >= n_boot:
@@ -336,9 +403,8 @@ def fit_two_condition(df_trials, p):
         b2 = rng.integers(len(q2), size=len(q2))
         q_b = np.concatenate([q1[b1], q2[b2]])
         y_b = np.concatenate([y1[b1], y2[b2]])
-        a_b = np.concatenate(
-            [np.full_like(b1, a1, dtype=float), np.full_like(b2, a2, dtype=float)]
-        )
+        a_b = np.concatenate([np.full_like(b1, a1, dtype=float),
+                              np.full_like(b2, a2, dtype=float)])
 
         r = _minimize_with_restarts(_nll_shared_alpha, theta0, args=(q_b, y_b, a_b, a1, a2), bounds=bounds, rng=rng)
         if r is None or (not r.success) or (not np.isfinite(r.fun)):
@@ -366,7 +432,7 @@ def fit_two_condition(df_trials, p):
     dp0_lo = float(np.percentile(dp0, 100 * alpha_ci / 2))
     dp0_hi = float(np.percentile(dp0, 100 * (1 - alpha_ci / 2)))
 
-    # Diagnostics: kernel smoother (per condition)
+    # Kernel smoother (diagnostic)
     kernel_csv = None
     if bool(p.get("kernel_enabled", True)):
         h = float(p.get("kernel_bandwidth", 0.08))
@@ -377,7 +443,6 @@ def fit_two_condition(df_trials, p):
         Gk2 = kernel_smoother(grid, q2, y2, h)
 
         c1, c2 = [], []
-        # kernel bootstrap uses resampling within each condition
         for _ in range(n_b):
             bb1 = rng.integers(len(q1), size=len(q1))
             bb2 = rng.integers(len(q2), size=len(q2))
@@ -386,30 +451,23 @@ def fit_two_condition(df_trials, p):
 
         c1 = np.asarray(c1, dtype=float)
         c2 = np.asarray(c2, dtype=float)
+
         lo1_k = np.percentile(c1, 100 * alpha_ci / 2, axis=0)
         hi1_k = np.percentile(c1, 100 * (1 - alpha_ci / 2), axis=0)
         lo2_k = np.percentile(c2, 100 * alpha_ci / 2, axis=0)
         hi2_k = np.percentile(c2, 100 * (1 - alpha_ci / 2), axis=0)
 
-        kernel_csv = pd.DataFrame(
-            {
-                "q": grid,
-                "Gk_central_a1": Gk1,
-                "Gk_low_a1": lo1_k,
-                "Gk_high_a1": hi1_k,
-                "Gk_central_a2": Gk2,
-                "Gk_low_a2": lo2_k,
-                "Gk_high_a2": hi2_k,
-            }
-        )
+        kernel_csv = pd.DataFrame({
+            "q": grid,
+            "Gk_central_a1": Gk1, "Gk_low_a1": lo1_k, "Gk_high_a1": hi1_k,
+            "Gk_central_a2": Gk2, "Gk_low_a2": lo2_k, "Gk_high_a2": hi2_k,
+        })
 
-    # Calibration diagnostics
+    # Calibration
     calib_bins = max(2, int(p.get("calib_bins", 10)))
-    p_pred = np.where(
-        np.isclose(a, a1),
-        clamp01(logistic(q, p0_1, alpha_hat)),
-        clamp01(logistic(q, p0_2, alpha_hat)),
-    )
+    p_pred = np.where(np.isclose(a, a1),
+                      clamp01(logistic(q, p0_1, alpha_hat)),
+                      clamp01(logistic(q, p0_2, alpha_hat)))
 
     edges = np.linspace(0, 1, calib_bins + 1)
     rows = []
@@ -429,79 +487,59 @@ def fit_two_condition(df_trials, p):
             s = int(np.sum(yv[idx]))
             obs = s / n
             lo_w, hi_w = wilson_interval(s, n)
-            rows.append(
-                {
-                    "bin_left": float(left),
-                    "bin_right": float(right),
-                    "bin_center": float(0.5 * (left + right)),
-                    "n_bin": int(n),
-                    "pred_mean": float(np.mean(pv[idx])),
-                    "obs_rate": float(obs),
-                    "lo": float(lo_w),
-                    "hi": float(hi_w),
-                    "a": float(val),
-                }
-            )
+            rows.append({
+                "bin_left": float(left),
+                "bin_right": float(right),
+                "bin_center": float(0.5 * (left + right)),
+                "n_bin": int(n),
+                "pred_mean": float(np.mean(pv[idx])),
+                "obs_rate": float(obs),
+                "lo": float(lo_w),
+                "hi": float(hi_w),
+                "a": float(val),
+            })
     calib_csv = pd.DataFrame(rows)
 
-    # Metrics: Brier & ECE
+    # Metrics
     metrics = []
-    for label, mask in [
-        ("a1", np.isclose(a, a1)),
-        ("a2", np.isclose(a, a2)),
-        ("all", np.full_like(a, True, dtype=bool)),
-    ]:
+    for label, mask in [("a1", np.isclose(a, a1)),
+                        ("a2", np.isclose(a, a2)),
+                        ("all", np.full_like(a, True, dtype=bool))]:
         yv = y[mask]
         pv = p_pred[mask]
         metrics.append({"metric": "Brier", "a": label, "value": brier_score(yv, pv)})
-        metrics.append({"metric": "ECE", "a": label, "value": ece_score(yv, pv, m=calib_bins)})
+        metrics.append({"metric": "ECE",   "a": label, "value": ece_score(yv, pv, m=calib_bins)})
     metrics_csv = pd.DataFrame(metrics)
 
-    # Assemble outputs
+    # Outputs
     G1 = logistic(qs, p0_1, alpha_hat)
     G2 = logistic(qs, p0_2, alpha_hat)
     d1 = (G1 * (1.0 - G1)) / max(alpha_hat, 1e-12)
     d2 = (G2 * (1.0 - G2)) / max(alpha_hat, 1e-12)
 
-    band_csv = pd.DataFrame(
-        {
-            "q": qs,
-            "G_central_a1": G1,
-            "G_low_a1": lo1,
-            "G_high_a1": hi1,
-            "G_central_a2": G2,
-            "G_low_a2": lo2,
-            "G_high_a2": hi2,
-        }
-    )
+    band_csv = pd.DataFrame({
+        "q": qs,
+        "G_central_a1": G1, "G_low_a1": lo1, "G_high_a1": hi1,
+        "G_central_a2": G2, "G_low_a2": lo2, "G_high_a2": hi2,
+    })
     der_csv = pd.DataFrame({"q": qs, "dGdq_a1": d1, "dGdq_a2": d2})
 
-    res_csv = pd.DataFrame(
-        [
-            {
-                "p0_hat_a1": float(p0_1),
-                "p0_hat_a2": float(p0_2),
-                "alpha_hat": float(alpha_hat),
-                "Delta_p0": float(p0_2 - p0_1),
-                "Delta_p0_lo": float(dp0_lo),
-                "Delta_p0_hi": float(dp0_hi),
-                "LRT_chi2": float(chi2_stat),
-                "LRT_df": int(df_lrt),
-                "LRT_pval": float(pval),
-                "Brier_a1": float(metrics_csv.query("metric=='Brier' and a=='a1'")["value"].iloc[0]),
-                "Brier_a2": float(metrics_csv.query("metric=='Brier' and a=='a2'")["value"].iloc[0]),
-                "Brier_all": float(metrics_csv.query("metric=='Brier' and a=='all'")["value"].iloc[0]),
-                "ECE_a1": float(metrics_csv.query("metric=='ECE' and a=='a1'")["value"].iloc[0]),
-                "ECE_a2": float(metrics_csv.query("metric=='ECE' and a=='a2'")["value"].iloc[0]),
-                "ECE_all": float(metrics_csv.query("metric=='ECE' and a=='all'")["value"].iloc[0]),
-            }
-        ]
-    )
+    res_csv = pd.DataFrame([{
+        "p0_hat_a1": float(p0_1), "p0_hat_a2": float(p0_2), "alpha_hat": float(alpha_hat),
+        "Delta_p0": float(p0_2 - p0_1), "Delta_p0_lo": float(dp0_lo), "Delta_p0_hi": float(dp0_hi),
+        "LRT_chi2": float(chi2_stat), "LRT_df": int(df_lrt), "LRT_pval": float(pval),
+        "Brier_a1": float(metrics_csv.query("metric=='Brier' and a=='a1'")["value"].iloc[0]),
+        "Brier_a2": float(metrics_csv.query("metric=='Brier' and a=='a2'")["value"].iloc[0]),
+        "Brier_all": float(metrics_csv.query("metric=='Brier' and a=='all'")["value"].iloc[0]),
+        "ECE_a1": float(metrics_csv.query("metric=='ECE' and a=='a1'")["value"].iloc[0]),
+        "ECE_a2": float(metrics_csv.query("metric=='ECE' and a=='a2'")["value"].iloc[0]),
+        "ECE_all": float(metrics_csv.query("metric=='ECE' and a=='all'")["value"].iloc[0]),
+    }])
 
-    return res_csv, band_csv, der_csv, kernel_csv, calib_csv, metrics_csv
+    return res_csv, band_csv, der_csv, kernel_csv, calib_csv, metrics_csv, a1, a2
 
 
-def fit_single_condition(df_trials, p):
+def fit_single_condition(df_trials: pd.DataFrame, p: dict):
     q = df_trials["q"].values.astype(float)
     y = df_trials["y"].values.astype(float)
 
@@ -514,7 +552,6 @@ def fit_single_condition(df_trials, p):
         raise RuntimeError("Optimization failed for single-condition model.")
     p0_hat, alpha_hat = res.x
 
-    # Bootstrap band
     n_boot = int(p["n_bootstrap"])
     qs = np.linspace(float(p["q_min"]), float(p["q_max"]), int(p["n_points"]))
 
@@ -546,7 +583,6 @@ def fit_single_condition(df_trials, p):
     band_csv = pd.DataFrame({"q": qs, "G_central_a1": G, "G_low_a1": lo, "G_high_a1": hi})
     der_csv = pd.DataFrame({"q": qs, "dGdq_a1": d})
 
-    # Diagnostics (kernel + calibration) for a1
     kernel_csv = None
     if bool(p.get("kernel_enabled", True)):
         h = float(p.get("kernel_bandwidth", 0.08))
@@ -577,58 +613,45 @@ def fit_single_condition(df_trials, p):
         s = int(np.sum(y[idx]))
         obs = s / n
         lo_w, hi_w = wilson_interval(s, n)
-        rows.append(
-            {
-                "bin_left": float(left),
-                "bin_right": float(right),
-                "bin_center": float(0.5 * (left + right)),
-                "n_bin": int(n),
-                "pred_mean": float(np.mean(p_pred[idx])),
-                "obs_rate": float(obs),
-                "lo": float(lo_w),
-                "hi": float(hi_w),
-                "a": "a1",
-            }
-        )
+        rows.append({
+            "bin_left": float(left),
+            "bin_right": float(right),
+            "bin_center": float(0.5 * (left + right)),
+            "n_bin": int(n),
+            "pred_mean": float(np.mean(p_pred[idx])),
+            "obs_rate": float(obs),
+            "lo": float(lo_w),
+            "hi": float(hi_w),
+            "a": "a1",
+        })
     calib_csv = pd.DataFrame(rows)
 
-    metrics_csv = pd.DataFrame(
-        [
-            {"metric": "Brier", "a": "a1", "value": brier_score(y, p_pred)},
-            {"metric": "ECE", "a": "a1", "value": ece_score(y, p_pred, m=calib_bins)},
-        ]
-    )
+    metrics_csv = pd.DataFrame([
+        {"metric": "Brier", "a": "a1", "value": brier_score(y, p_pred)},
+        {"metric": "ECE",   "a": "a1", "value": ece_score(y, p_pred, m=calib_bins)},
+    ])
 
-    res_csv = pd.DataFrame(
-        [
-            {
-                "p0_hat_a1": float(p0_hat),
-                "alpha_hat": float(alpha_hat),
-                "Delta_p0": np.nan,
-                "Delta_p0_lo": np.nan,
-                "Delta_p0_hi": np.nan,
-                "LRT_chi2": np.nan,
-                "LRT_df": 0,
-                "LRT_pval": np.nan,
-                "Brier_a1": float(metrics_csv.query("metric=='Brier' and a=='a1'")["value"].iloc[0]),
-                "Brier_a2": np.nan,
-                "Brier_all": float(metrics_csv.query("metric=='Brier' and a=='a1'")["value"].iloc[0]),
-                "ECE_a1": float(metrics_csv.query("metric=='ECE' and a=='a1'")["value"].iloc[0]),
-                "ECE_a2": np.nan,
-                "ECE_all": float(metrics_csv.query("metric=='ECE' and a=='a1'")["value"].iloc[0]),
-            }
-        ]
-    )
+    res_csv = pd.DataFrame([{
+        "p0_hat_a1": float(p0_hat), "alpha_hat": float(alpha_hat),
+        "Delta_p0": np.nan, "Delta_p0_lo": np.nan, "Delta_p0_hi": np.nan,
+        "LRT_chi2": np.nan, "LRT_df": 0, "LRT_pval": np.nan,
+        "Brier_a1": float(metrics_csv.query("metric=='Brier' and a=='a1'")["value"].iloc[0]),
+        "Brier_a2": np.nan,
+        "Brier_all": float(metrics_csv.query("metric=='Brier' and a=='a1'")["value"].iloc[0]),
+        "ECE_a1": float(metrics_csv.query("metric=='ECE' and a=='a1'")["value"].iloc[0]),
+        "ECE_a2": np.nan,
+        "ECE_all": float(metrics_csv.query("metric=='ECE' and a=='a1'")["value"].iloc[0]),
+    }])
 
     return res_csv, band_csv, der_csv, kernel_csv, calib_csv, metrics_csv
 
 
-# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------#
 # Main
-# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------#
 def main():
     load_state()
-    p = load_params()
+    p, params_path = load_params()
     save_state()
 
     here = os.path.dirname(__file__)
@@ -638,21 +661,33 @@ def main():
     trials_path = os.path.join(out_dir, "logistic_trials.csv")
     if not os.path.exists(trials_path):
         raise FileNotFoundError("Missing logistic_trials.csv. Run simulate_logistic.py first.")
-
     df_trials = pd.read_csv(trials_path)
 
-    # Ensure required columns exist
     for col in ("q", "y", "a"):
         if col not in df_trials.columns:
             raise ValueError(f"logistic_trials.csv missing required column '{col}'.")
 
-    a_levels = np.unique(np.round(df_trials["a"].values.astype(float), 6))
+    # Hard anti-contradiction checks
+    run_hash = _require_manifest_and_hashes(out_dir, df_trials, p, params_path)
+
+    a_levels = _extract_unique_arousal(df_trials)
     two = bool(p.get("use_two_conditions", True)) and (len(a_levels) >= 2)
 
     if two:
-        df_res, df_band, df_der, df_kernel, df_calib, df_metrics = fit_two_condition(df_trials, p)
+        df_res, df_band, df_der, df_kernel, df_calib, df_metrics, a1_used, a2_used = fit_two_condition(df_trials, p)
+        # Stamp which a-values were actually used
+        df_res["a1_used"] = float(a1_used)
+        df_res["a2_used"] = float(a2_used)
     else:
         df_res, df_band, df_der, df_kernel, df_calib, df_metrics = fit_single_condition(df_trials, p)
+        df_res["a1_used"] = float(a_levels[0])
+        df_res["a2_used"] = np.nan
+
+    # Stamp run_hash into all outputs
+    for df in (df_res, df_band, df_der, df_calib, df_metrics):
+        df["run_hash"] = run_hash
+    if df_kernel is not None:
+        df_kernel["run_hash"] = run_hash
 
     df_res.to_csv(os.path.join(out_dir, "fit_logistic_results.csv"), index=False)
     df_band.to_csv(os.path.join(out_dir, "logistic_band.csv"), index=False)
@@ -663,6 +698,7 @@ def main():
     df_metrics.to_csv(os.path.join(out_dir, "logistic_calibration_metrics.csv"), index=False)
 
     print(f"Saved logistic fit, bands, derivatives, and diagnostics to {out_dir}")
+    print(f"run_hash={run_hash}")
 
 
 if __name__ == "__main__":
