@@ -1,6 +1,6 @@
 tierB_tempered:
   # ---------------- Simulation truth (Tier-B; ms-scale window) ----------------
-  seed: 7
+  seed: 52
   eta_true: 0.35            # FAST-component mixture weight (η_fast)
   tau_fast_true_s: 0.012    # 12 ms
   tau_slow_true_s: 0.048    # 48 ms
