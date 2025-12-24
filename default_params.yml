@@ -28,5 +28,5 @@ TierA:
   sigma0: 0.30       # baseline noise scale (a.u.); effective σ = sigma0*(1 - x_noise)^2
 
   # Reproducibility & plotting
-  seed: 42
+  seed: 52
   arousal_quantiles: [0.2, 0.5, 0.8]  # low/median/high bands for gate-saturation plot
