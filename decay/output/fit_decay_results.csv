@@ -1,2 +1,2 @@
-tau_hat_ms,ci_lo_ms,ci_hi_ms,tau_hat_ms_wls,wls_ci_lo_ms,wls_ci_hi_ms,tau_hat_ms_tobit,tobit_ci_lo_ms,tobit_ci_hi_ms,agree_wls_in_ols_CI,agree_tobit_in_ols_CI
-20.165839193467644,19.24167617668391,21.179313886401147,20.081390323227986,19.114426801617636,21.099919079655177,20.165839311042447,19.241676290260582,21.163133678222472,True,True
+run_hash,params_path,tau_hat_ms,ci_lo_ms,ci_hi_ms,tau_hat_ms_wls,wls_ci_lo_ms,wls_ci_hi_ms,tau_hat_ms_tobit,tobit_ci_lo_ms,tobit_ci_hi_ms,agree_wls_in_ols_CI,agree_tobit_in_ols_CI
+2dbf33612192321554babf5dfefcf79eaddba84049c693e55f0b7d5c27631296,/home/runner/work/GOLDILOCKS-CRI/GOLDILOCKS-CRI/decay/default_params.yml,20.165839193467644,19.24167617668391,21.179313886401147,20.081390323227986,19.114426801617636,21.099919079655177,20.165839257722247,19.24167624055422,21.163133603425624,True,True
