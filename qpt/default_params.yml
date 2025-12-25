@@ -19,7 +19,8 @@ qpt:
   # Noise / bootstrap used upstream when generating qpt_sim_data.npz
   noise_R:       0.05
   n_bootstrap:   1000
-
+  ci_percent: 95
+  
   # --- Units/normalization controls for Figure (c) ---
   # Baseline rate (s^-1) mapping weights -> physical rates; used in caption and in R = λ_env / κ0
   kappa0:        8.0        # ≈ 1/0.125 s; aligns with ~125 ms CRI timescales
