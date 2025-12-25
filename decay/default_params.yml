@@ -3,6 +3,7 @@ decay:
   A0: 1.0
 
   # Future-decay constant (τ_fut); Box-2(a) uses 20 ms.
+  tau_fut: 0.02
   tau_f: 0.02           # seconds (20 ms)
 
   # Log-domain point noise (σ_log). Interpreted as SD of ln(A_pre).
@@ -13,6 +14,10 @@ decay:
   delta_end:   0.02
   delta_step:  0.005
 
+  # Optional explicit switches
+  apply_censoring: false
+  epsilon_detection: 0.01  # only used if A_min absent
+  
   # Continuous curve sampling and bootstrap
   n_cont: 300
   n_boot: 2000
