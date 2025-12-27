@@ -420,12 +420,14 @@ def main():
         if (np.isfinite(lo_s) and np.isfinite(hi_s))
         else ""
     )
+ 
     ann_text = (
-        rf"$\mathrm{{slope}}={slope_per_s:.1f}\,\mathrm{{s}}^{{-1}}$"
-        + "\n"
-        + rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\,\mathrm{{ms}}$"
+        rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\,\mathrm{{ms}}$"
         + ci_line
-    )
+        + "\n"
+        + rf"$\mathrm{{slope}}={slope_per_s:.1f}\,\mathrm{{s}}^{{-1}}$"
+    ) 
+
     ax.text(
         float(args.ann_x), y_ann, ann_text,
         transform=trans, fontsize=6.0, va="top", ha=str(args.ann_ha),
