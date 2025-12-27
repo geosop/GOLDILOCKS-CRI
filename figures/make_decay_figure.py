@@ -10,6 +10,21 @@ FIX (layout):
 Other provenance behavior unchanged:
   - Enforces run_hash against decay/output/run_manifest.json AND YAML-effective params.
   - Embeds run_hash + config path into PDF/PNG metadata.
+
+    ci_line = (
+        rf"\n$[{lo_s*1e3:.1f},{hi_s*1e3:.1f}]\,\mathrm{{ms}}$"
+        if (np.isfinite(lo_s) and np.isfinite(hi_s))
+        else ""
+    )
+ 
+    ann_text = (
+        rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\,\mathrm{{ms}}$"
+        + ci_line
+        + "\n"
+        + rf"$\mathrm{{slope}}={slope_per_s:.1f}\,\mathrm{{s}}^{{-1}}$"
+    ) 
+
+
 """
 from __future__ import annotations
 
@@ -423,24 +438,10 @@ def main():
     else:
         tau_line = rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\,\mathrm{{ms}}$"
 
-        slope_line = rf"$\mathrm{{slope}}={slope_per_s:.1f}\,\mathrm{{s}}^{{-1}}$"
-        # Order: τ̂_fut first line, slope second line
-        ann_text = tau_line + "\n" + slope_line
+    slope_line = rf"$\mathrm{{slope}}={slope_per_s:.1f}\,\mathrm{{s}}^{{-1}}$"
+    # Order: τ̂_fut first line, slope second line
+    ann_text = tau_line + "\n" + slope_line
 
-"""
-    ci_line = (
-        rf"\n$[{lo_s*1e3:.1f},{hi_s*1e3:.1f}]\,\mathrm{{ms}}$"
-        if (np.isfinite(lo_s) and np.isfinite(hi_s))
-        else ""
-    )
- 
-    ann_text = (
-        rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\,\mathrm{{ms}}$"
-        + ci_line
-        + "\n"
-        + rf"$\mathrm{{slope}}={slope_per_s:.1f}\,\mathrm{{s}}^{{-1}}$"
-    ) 
-"""
     ax.text(
         float(args.ann_x), y_ann, ann_text,
         transform=trans, fontsize=6.0, va="top", ha=str(args.ann_ha),
