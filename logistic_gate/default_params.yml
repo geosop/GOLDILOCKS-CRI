@@ -9,8 +9,8 @@ logistic:
 
   # Two-condition illustration (dimensionless arousal)
   use_two_conditions: true
-  a1: 0.50
-  a2: 0.80
+  a1: 0.30
+  a2: 0.70
 
   # Gate steepness (dimensionless)
   alpha: 0.05
