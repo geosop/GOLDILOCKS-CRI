@@ -415,6 +415,19 @@ def main():
     y_ann = ymin + _clamp(float(args.ann_yfrac), 0.0, 1.0) * (ymax - ymin)
     trans = mtransforms.blended_transform_factory(ax.transAxes, ax.transData)
 
+    if (np.isfinite(lo_s) and np.isfinite(hi_s)):
+        tau_line = (
+            rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}"
+            rf"\,[{lo_s*1e3:.1f},{hi_s*1e3:.1f}]\,\mathrm{{ms}}$"
+        )
+    else:
+        tau_line = rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\,\mathrm{{ms}}$"
+
+    slope_line = rf"$\mathrm{{slope}}={slope_per_s:.1f}\,\mathrm{{s}}^{{-1}}$"
+    # Order: τ̂_fut first line, slope second line
+    ann_text = tau_line + "\n" + slope_line
+
+"""
     ci_line = (
         rf"\n$[{lo_s*1e3:.1f},{hi_s*1e3:.1f}]\,\mathrm{{ms}}$"
         if (np.isfinite(lo_s) and np.isfinite(hi_s))
@@ -427,7 +440,7 @@ def main():
         + "\n"
         + rf"$\mathrm{{slope}}={slope_per_s:.1f}\,\mathrm{{s}}^{{-1}}$"
     ) 
-
+"""
     ax.text(
         float(args.ann_x), y_ann, ann_text,
         transform=trans, fontsize=6.0, va="top", ha=str(args.ann_ha),
