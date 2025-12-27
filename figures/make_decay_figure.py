@@ -423,9 +423,9 @@ def main():
     else:
         tau_line = rf"$\hat{{\tau}}_{{\mathrm{{fut}}}}={tau_ms:.1f}\,\mathrm{{ms}}$"
 
-    slope_line = rf"$\mathrm{{slope}}={slope_per_s:.1f}\,\mathrm{{s}}^{{-1}}$"
-    # Order: τ̂_fut first line, slope second line
-    ann_text = tau_line + "\n" + slope_line
+        slope_line = rf"$\mathrm{{slope}}={slope_per_s:.1f}\,\mathrm{{s}}^{{-1}}$"
+        # Order: τ̂_fut first line, slope second line
+        ann_text = tau_line + "\n" + slope_line
 
 """
     ci_line = (
