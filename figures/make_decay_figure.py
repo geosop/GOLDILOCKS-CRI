@@ -444,7 +444,7 @@ def main():
 
     ax.text(
         float(args.ann_x), y_ann, ann_text,
-        transform=trans, fontsize=6.0, va="top", ha=str(args.ann_ha),
+        transform=trans, fontsize=5.0, va="top", ha=str(args.ann_ha), # <-- Font-size knob for the slope/τ̂_fut printout
         bbox=dict(boxstyle="round,pad=0.25", facecolor="white", alpha=0.80, edgecolor="none"),
         clip_on=True,
     )
