@@ -526,7 +526,26 @@ def main():
     ax1.set_xlabel(r"$\xi$ (–) (here $\xi=q$)")
     ax1.set_ylabel(r"$G(\xi)$ (–)")
     h1, l1 = _dedupe_legend(ax1)
-    ax1.legend(h1, l1, loc="lower right", frameon=True, fontsize=7)
+    # Legend: 1 pt smaller than default, transparent fill, tight vertical spacing
+    try:
+        leg_fs = float(mpl.rcParams.get("legend.fontsize", 7)) - 1.0
+    except Exception:
+        leg_fs = 6.0  # fallback if rcParams legend.fontsize is non-numeric
+
+    ax1.legend(
+        h1, l1,
+        loc="lower right",
+        frameon=True,
+        fontsize=leg_fs,        # one size smaller
+        facecolor="none",       # clear/transparent background fill
+        framealpha=1.0,         # keep frame visible (set to 0.0 if you want no frame at all)
+        edgecolor="0.75",       # optional; set to "none" to remove border line
+        labelspacing=0.15,      # minimal space between legend entries (vertical)
+        borderpad=0.15,         # minimal padding inside legend box
+        handletextpad=0.4,      # tighter handle-to-text spacing
+        handlelength=1.4,
+        borderaxespad=0.3,
+    )
 
     # --- BOTTOM: calibration curves ---
     for a_val, df_a in calib_clean.groupby("a", sort=False):
