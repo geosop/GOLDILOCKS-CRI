@@ -98,13 +98,18 @@ jobs:
           echo "---- find figures (2 levels) ----"
           find figures -maxdepth 2 -type f -printf "%p\t%k KB\n" | sort
 
+          
       - name: Stamp build metadata
+        shell: bash
         run: |
           python - <<'PY'
           import os, json, platform, sys
           from datetime import datetime, timezone
           from pathlib import Path
-          out = Path("figures/output"); out.mkdir(parents=True, exist_ok=True)
+
+          out = Path("figures/output")
+          out.mkdir(parents=True, exist_ok=True)
+
           info = {
             "timestamp_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "github": {
@@ -125,9 +130,11 @@ jobs:
               "pythonhashseed": os.environ.get("PYTHONHASHSEED", "<unset>"),
             }
           }
-          (out/"build_info.json").write_text(json.dumps(info, indent=2))
+
+          (out / "build_info.json").write_text(json.dumps(info, indent=2))
           print(json.dumps(info, indent=2))
-          PY 
+      PY
+
       
       - name: Smoke test figures
         run: |
