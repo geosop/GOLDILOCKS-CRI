@@ -1,0 +1,178 @@
+name: build-and-test
+
+on:
+  push:
+    branches: [ main ]       # only main pushes
+    paths-ignore:
+      - 'decay/output/**'
+      - 'figures/output/**'
+      - 'logistic_gate/output/**'
+      - 'qpt/output/**'
+      - 'synthetic_EEG/output/**'
+    tags: [ 'v*' ]           # optional: releases
+  pull_request:
+    branches: [ main ]       # PRs targeting main
+    types: [ opened, synchronize, reopened ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  figures:
+    runs-on: ubuntu-latest
+
+    # --- Global environment (inherited by all steps, including ./run_all.sh) ---
+    env:
+      MPLBACKEND: Agg
+      CRI_SEED: 52
+      PYTHONHASHSEED: "0"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+      CRI_LOGISTIC_CONFIG: "logistic_gate/params_box2b.yml"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install system packages (LaTeX + tools)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            texlive-latex-extra texlive-pictures texlive-fonts-recommended \
+            texlive-science texlive-fonts-extra latexmk \
+            poppler-utils imagemagick
+
+      - name: Show repo tree (top level)
+        run: |
+          ls -la
+          echo "---- figures/ ----"
+          ls -la figures || true
+          echo "---- utilities/ ----"
+          ls -la utilities || true
+
+      - name: Ensure runner can execute scripts
+        run: chmod +x run_all.sh || true
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f utilities/requirements.pip.txt ]; then
+            echo "Installing from utilities/requirements.pip.txt"
+            pip install -r utilities/requirements.pip.txt
+          elif [ -f requirements.pip.txt ]; then
+            echo "Installing from requirements.pip.txt"
+            pip install -r requirements.pip.txt
+          else
+            echo "No pinned requirements file; installing minimal deps needed by CI"
+            pip install numpy pandas scipy matplotlib PyYAML
+          fi
+
+      - name: Echo seed + Python info (for provenance)
+        run: |
+          echo "CRI_SEED=${CRI_SEED}"
+          python -V
+          python - <<'PY'
+          import os, platform, sys
+          print("PYTHONHASHSEED =", os.environ.get("PYTHONHASHSEED"))
+          print("Platform        =", platform.platform())
+          print("Sys.version     =", sys.version.replace("\n"," "))
+PY
+
+      # Build everything (data + figures); your scripts read CRI_SEED from env
+      - name: Build everything (data + figures)
+        run: ./run_all.sh
+
+      - name: List outputs before smoke test
+        run: |
+          echo "---- figures/output/ ----"
+          ls -la figures/output || true
+          echo "---- find figures (2 levels) ----"
+          find figures -maxdepth 2 -type f -printf "%p\t%k KB\n" | sort
+
+      - name: Stamp build metadata
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, json, platform, sys
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          out = Path("figures/output")
+          out.mkdir(parents=True, exist_ok=True)
+
+          info = {
+            "timestamp_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "github": {
+              "workflow": os.environ.get("GITHUB_WORKFLOW"),
+              "run_id": os.environ.get("GITHUB_RUN_ID"),
+              "run_number": os.environ.get("GITHUB_RUN_NUMBER"),
+              "sha": os.environ.get("GITHUB_SHA"),
+              "ref": os.environ.get("GITHUB_REF"),
+              "actor": os.environ.get("GITHUB_ACTOR"),
+              "repo": os.environ.get("GITHUB_REPOSITORY"),
+            },
+            "runtime": {
+              "python": sys.version.replace("\n"," "),
+              "platform": platform.platform(),
+            },
+            "cri": {
+              "seed": os.environ.get("CRI_SEED", "<unset>"),
+              "pythonhashseed": os.environ.get("PYTHONHASHSEED", "<unset>"),
+            }
+          }
+
+          (out / "build_info.json").write_text(json.dumps(info, indent=2))
+          print(json.dumps(info, indent=2))
+PY
+
+      - name: Smoke test figures
+        run: |
+          python utilities/smoke_test.py --dir figures/output
+
+      - name: Diagnostics (artifact bottleneck)
+        run: |
+          set -euo pipefail
+          echo "== figures/output file count =="; find figures/output -type f | wc -l || true
+          echo "== figures/output total size =="; du -sh figures/output || true
+          echo "== Top 30 largest files in figures/output =="; (du -ah figures/output | sort -hr | head -n 30) || true
+          echo "== Count by extension (top) =="; (find figures/output -type f -name "*.*" -printf "%f\n" | sed 's/.*\.//' | sort | uniq -c | sort -nr | head -n 20) || true
+
+      - name: Stage final outputs only (avoid bulk)
+        run: |
+          set -euo pipefail
+          rm -rf artifact_staging
+          mkdir -p artifact_staging/figures
+
+          # Only include your final deliverables (keep exactly what you already upload)
+          shopt -s nullglob
+          cp -v figures/output/*.pdf artifact_staging/figures/ || true
+          cp -v figures/output/*.png artifact_staging/figures/ || true
+          cp -v figures/output/manifest.* artifact_staging/figures/ || true
+          cp -v figures/output/build_info.json artifact_staging/figures/ || true
+
+          echo "== Staged files =="
+          find artifact_staging -type f -maxdepth 2 -printf "%p\t%k KB\n" | sort
+
+      - name: Package artifacts (single file)
+        run: |
+          set -euo pipefail
+          tar -cf figures_artifact.tar -C artifact_staging .
+          echo "== Packaged tar size =="
+          ls -lh figures_artifact.tar
+
+      - name: Upload figure artifacts (no compression; single archive)
+        uses: actions/upload-artifact@v4
+        with:
+          name: figures-${{ github.sha }}
+          path: figures_artifact.tar
+          compression-level: 0
