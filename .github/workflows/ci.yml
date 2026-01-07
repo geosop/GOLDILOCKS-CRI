@@ -23,7 +23,6 @@ jobs:
   figures:
     runs-on: ubuntu-latest
 
-    # --- Global environment (inherited by all steps, including ./run_all.sh) ---
     env:
       MPLBACKEND: Agg
       CRI_SEED: 52
@@ -86,9 +85,8 @@ jobs:
           print("PYTHONHASHSEED =", os.environ.get("PYTHONHASHSEED"))
           print("Platform        =", platform.platform())
           print("Sys.version     =", sys.version.replace("\n"," "))
-PY
+          PY
 
-      # Build everything (data + figures); your scripts read CRI_SEED from env
       - name: Build everything (data + figures)
         run: ./run_all.sh
 
@@ -133,7 +131,7 @@ PY
 
           (out / "build_info.json").write_text(json.dumps(info, indent=2))
           print(json.dumps(info, indent=2))
-PY
+          PY
 
       - name: Smoke test figures
         run: |
@@ -153,7 +151,6 @@ PY
           rm -rf artifact_staging
           mkdir -p artifact_staging/figures
 
-          # Only include your final deliverables (keep exactly what you already upload)
           shopt -s nullglob
           cp -v figures/output/*.pdf artifact_staging/figures/ || true
           cp -v figures/output/*.png artifact_staging/figures/ || true
